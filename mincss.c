@@ -131,6 +131,13 @@ static tokentype next_token(mincss_context *context)
         int dotpos = -1;
         while (1) {
             ch = next_char(context);
+            if (ch == -1) {
+                if (dotpos > 0 && dotpos == context->tokenlen-1) {
+                    putback_char(context, 1);
+                    return tok_Number;
+                }
+                return tok_Number;
+            }
             if (ch == '.') {
                 if (dotpos >= 0) {
                     if (dotpos == context->tokenlen-2) {
