@@ -22,8 +22,14 @@ typedef enum tokentype_enum {
     tok_Number = 1,
     tok_LBrace = 2,
     tok_RBrace = 3,
-    tok_Delim = 4,
-    tok_Space = 5,
+    tok_LBracket = 4,
+    tok_RBracket = 5,
+    tok_LParen = 6,
+    tok_RParen = 7,
+    tok_Delim = 8,
+    tok_Space = 9,
+    tok_Colon = 10,
+    tok_Semicolon = 11,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -176,10 +182,22 @@ static tokentype next_token(mincss_context *context)
     }
 
     switch (ch) {
+    case '(':
+        return tok_LParen;
+    case ')':
+        return tok_RParen;
+    case '[':
+        return tok_LBracket;
+    case ']':
+        return tok_RBracket;
     case '{':
         return tok_LBrace;
     case '}':
         return tok_RBrace;
+    case ':':
+        return tok_Colon;
+    case ';':
+        return tok_Semicolon;
     }
 
     if (IS_WHITESPACE(ch)) {
