@@ -30,6 +30,7 @@ typedef enum tokentype_enum {
     tok_Space = 9,
     tok_Colon = 10,
     tok_Semicolon = 11,
+    tok_Comment = 12,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -179,6 +180,7 @@ static char *token_name(tokentype tok)
     case tok_Space: return "Space";
     case tok_Colon: return "Colon";
     case tok_Semicolon: return "Semicolon";
+    case tok_Comment: return "Comment";
     default: return "???";
     }
 }
@@ -279,6 +281,27 @@ static tokentype next_token(mincss_context *context)
             }
             /* digit */
             continue;
+        }
+    }
+
+    if (ch == '/') {
+        ch = next_char(context);
+        if (ch == -1) 
+            return tok_Delim;
+        if (ch != '*') {
+            putback_char(context, 1);
+            return tok_Delim;
+        }
+        int gotstar = 0;
+        while (1) {
+            ch = next_char(context);
+            if (ch == -1) {
+                note_error(context, "Unterminated comment");
+                return tok_Comment;
+            }
+            if (ch == '/' && gotstar)
+                return tok_Comment;
+            gotstar = (ch == '*');
         }
     }
 
