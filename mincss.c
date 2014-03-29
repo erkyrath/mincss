@@ -125,7 +125,7 @@ static void note_error(mincss_context *context, char *msg)
     if (context->parse_error)
         context->parse_error(msg, context->parserock);
     else
-        fprintf(stderr, "MinCSS error: %s", msg);
+        fprintf(stderr, "MinCSS error: %s\n", msg);
 }
 
 static void putchar_utf8(int32_t val, FILE *fl)
@@ -180,12 +180,17 @@ static tokentype next_token(mincss_context *context)
         return tok_RBrace;
     }
 
-    if (ch >= '0' && ch <= '9') {
+    if ((ch >= '0' && ch <= '9') || (ch == '.')) {
         int dotpos = -1;
+        if (ch == '.')
+            dotpos = 0;
         while (1) {
             ch = next_char(context);
             if (ch == -1) {
-                if (dotpos > 0 && dotpos == context->tokenlen-1) {
+                if (dotpos == 0 && context->tokenlen == 1) {
+                    return tok_Delim;
+                }
+                if (dotpos >= 0 && dotpos == context->tokenlen-1) {
                     putback_char(context, 1);
                     return tok_Number;
                 }
@@ -193,6 +198,10 @@ static tokentype next_token(mincss_context *context)
             }
             if (ch == '.') {
                 if (dotpos >= 0) {
+                    if (dotpos == 0 && context->tokenlen == 2) {
+                        putback_char(context, 1);
+                        return tok_Delim;
+                    }
                     if (dotpos == context->tokenlen-2) {
                         putback_char(context, 2);
                         return tok_Number;
@@ -204,7 +213,11 @@ static tokentype next_token(mincss_context *context)
                 continue;
             }
             if (!(ch >= '0' && ch <= '9')) {
-                if (dotpos > 0 && dotpos == context->tokenlen-2) {
+                if (dotpos == 0 && context->tokenlen == 2) {
+                    putback_char(context, 1);
+                    return tok_Delim;
+                }
+                if (dotpos >= 0 && dotpos == context->tokenlen-2) {
                     putback_char(context, 2);
                     return tok_Number;
                 }
