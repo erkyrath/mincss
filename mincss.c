@@ -27,6 +27,7 @@ typedef enum tokentype_enum {
 
 static void perform_parse(mincss_context *context);
 static void note_error(mincss_context *context, char *msg);
+static void putchar_utf8(int32_t val, FILE *fl);
 static tokentype next_token(mincss_context *context);
 static int32_t next_char(mincss_context *context);
 static void putback_char(mincss_context *context, int count);
@@ -62,6 +63,24 @@ void mincss_parse_unicode(mincss_context *context,
     context->parse_error = NULL;
 }
 
+void mincss_parse_bytes_utf8(mincss_context *context, 
+    mincss_unicode_reader reader,
+    mincss_error_handler error,
+    void *rock)
+{
+    context->parserock = rock;
+    context->parse_unicode = NULL;
+    context->parse_byte = reader;
+    context->parse_error = error;
+
+    perform_parse(context);
+
+    context->parserock = NULL;
+    context->parse_unicode = NULL;
+    context->parse_byte = NULL;
+    context->parse_error = NULL;
+}
+
 static void perform_parse(mincss_context *context)
 {
     context->errorcount = 0;
@@ -82,8 +101,13 @@ static void perform_parse(mincss_context *context)
         if (toktype == tok_EOF)
             break;
         printf("### token %d: '", toktype);
-        for (ix=0; ix<context->tokenlen; ix++)
-            printf("%c", (char)context->token[ix]);
+        for (ix=0; ix<context->tokenlen; ix++) {
+            int32_t ch = context->token[ix];
+            if (ch < 32)
+                printf("^%c", ch+64);
+            else
+                putchar_utf8(ch, stdout);
+        }
         printf("'\n");
     }
 
@@ -103,6 +127,35 @@ static void note_error(mincss_context *context, char *msg)
     else
         fprintf(stderr, "MinCSS error: %s", msg);
 }
+
+static void putchar_utf8(int32_t val, FILE *fl)
+{
+    if (val < 0) {
+        putc('?', fl);
+    }
+    else if (val < 0x80) {
+        putc(val, fl);
+    }
+    else if (val < 0x800) {
+        putc((0xC0 | ((val & 0x7C0) >> 6)), fl);
+        putc((0x80 |  (val & 0x03F)     ),  fl);
+    }
+    else if (val < 0x10000) {
+        putc((0xE0 | ((val & 0xF000) >> 12)), fl);
+        putc((0x80 | ((val & 0x0FC0) >>  6)), fl);
+        putc((0x80 |  (val & 0x003F)      ),  fl);
+    }
+    else if (val < 0x200000) {
+        putc((0xF0 | ((val & 0x1C0000) >> 18)), fl);
+        putc((0x80 | ((val & 0x03F000) >> 12)), fl);
+        putc((0x80 | ((val & 0x000FC0) >>  6)), fl);
+        putc((0x80 |  (val & 0x00003F)      ),  fl);
+    }
+    else {
+        putc('?', fl);
+    }
+}
+
 
 static tokentype next_token(mincss_context *context)
 {
@@ -188,8 +241,38 @@ static int32_t next_char(mincss_context *context)
         }
     }
 
-    /* ### or bytes */
-    ch = (context->parse_unicode)(context->parserock);
+    if (context->parse_byte) {
+        int32_t byte0 = (context->parse_byte)(context->parserock);
+        if (byte0 < 0) {
+            ch = -1;
+        }
+        else if (byte0 < 0x80) {
+            ch = byte0;
+        }
+        else if ((byte0 & 0xe0) == 0xc0) {
+            int32_t byte1 = (context->parse_byte)(context->parserock);
+            if (byte1 < 0) {
+                note_error(context, "(UTF8) Incomplete two-byte character");
+                ch = byte0;
+            }
+            else if ((byte1 & 0xc0) != 0x80) {
+                note_error(context, "(UTF8) Malformed two-byte character");
+                ch = byte0;
+            }
+            else {
+                ch = (byte0 & 0x1f) << 6;
+                ch |= (byte1 & 0x3f);
+            }
+        }
+        /*### more cases */
+        else {
+            note_error(context, "(UTF8) Malformed character");
+            ch = '?';
+        }
+    }
+    else {
+        ch = (context->parse_unicode)(context->parserock);
+    }
     if (ch == -1)
         return -1;
 

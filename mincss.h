@@ -9,7 +9,7 @@ typedef struct mincss_context_struct mincss_context;
 extern mincss_context *mincss_init(void);
 extern void mincss_final(mincss_context *context);
 
-extern void mincss_parse_bytes(mincss_context *context, 
+extern void mincss_parse_bytes_utf8(mincss_context *context, 
     mincss_byte_reader reader,
     mincss_error_handler error,
     void *rock);

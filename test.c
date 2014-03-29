@@ -7,8 +7,7 @@ int main(int argc, char *argv[])
 {
     mincss_context *context = mincss_init();
 
-    /*### bytes really */
-    mincss_parse_unicode(context, read_stdin_byte, NULL, NULL);
+    mincss_parse_bytes_utf8(context, read_stdin_byte, NULL, NULL);
 
     mincss_final(context);
 
