@@ -23,6 +23,7 @@ typedef enum tokentype_enum {
     tok_LBrace = 2,
     tok_RBrace = 3,
     tok_Delim = 4,
+    tok_Space = 5,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -156,6 +157,7 @@ static void putchar_utf8(int32_t val, FILE *fl)
     }
 }
 
+#define IS_WHITESPACE(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\f')
 
 static tokentype next_token(mincss_context *context)
 {
@@ -178,6 +180,19 @@ static tokentype next_token(mincss_context *context)
         return tok_LBrace;
     case '}':
         return tok_RBrace;
+    }
+
+    if (IS_WHITESPACE(ch)) {
+        while (1) {
+            ch = next_char(context);
+            if (ch == -1) 
+                return tok_Space;
+            if (!IS_WHITESPACE(ch)) {
+                putback_char(context, 1);
+                return tok_Space;
+            }
+            continue;
+        }
     }
 
     if ((ch >= '0' && ch <= '9') || (ch == '.')) {
