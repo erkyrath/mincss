@@ -35,6 +35,7 @@ typedef enum tokentype_enum {
 static void perform_parse(mincss_context *context);
 static void note_error(mincss_context *context, char *msg);
 static void putchar_utf8(int32_t val, FILE *fl);
+static char *token_name(tokentype tok);
 static tokentype next_token(mincss_context *context);
 static int32_t next_char(mincss_context *context);
 static void putback_char(mincss_context *context, int count);
@@ -107,7 +108,7 @@ static void perform_parse(mincss_context *context)
         tokentype toktype = next_token(context);
         if (toktype == tok_EOF)
             break;
-        printf("### token %d: '", toktype);
+        printf("### %s: '", token_name(toktype));
         for (ix=0; ix<context->tokenlen; ix++) {
             int32_t ch = context->token[ix];
             if (ch < 32)
@@ -160,6 +161,25 @@ static void putchar_utf8(int32_t val, FILE *fl)
     }
     else {
         putc('?', fl);
+    }
+}
+
+static char *token_name(tokentype tok)
+{
+    switch (tok) {
+    case tok_EOF: return "EOF";
+    case tok_Number: return "Number";
+    case tok_LBrace: return "LBrace";
+    case tok_RBrace: return "RBrace";
+    case tok_LBracket: return "LBracket";
+    case tok_RBracket: return "RBracket";
+    case tok_LParen: return "LParen";
+    case tok_RParen: return "RParen";
+    case tok_Delim: return "Delim";
+    case tok_Space: return "Space";
+    case tok_Colon: return "Colon";
+    case tok_Semicolon: return "Semicolon";
+    default: return "???";
     }
 }
 
