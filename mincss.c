@@ -109,7 +109,7 @@ static void perform_parse(mincss_context *context)
         tokentype toktype = next_token(context);
         if (toktype == tok_EOF)
             break;
-        printf("### %s: '", token_name(toktype));
+        printf("<%s> \"", token_name(toktype));
         for (ix=0; ix<context->tokenlen; ix++) {
             int32_t ch = context->token[ix];
             if (ch < 32)
@@ -117,7 +117,7 @@ static void perform_parse(mincss_context *context)
             else
                 putchar_utf8(ch, stdout);
         }
-        printf("'\n");
+        printf("\"\n");
     }
 
     free(context->token);
