@@ -380,7 +380,45 @@ static int32_t next_char(mincss_context *context)
                 }
             }
         }
-        /*### more cases */
+        else if ((byte0 & 0xF0) == 0xF0) {
+            int32_t byte1 = (context->parse_byte)(context->parserock);
+            if (byte1 < 0) {
+                note_error(context, "(UTF8) Incomplete four-byte character");
+                ch = byte0;
+            }
+            else if ((byte1 & 0xC0) != 0x80) {
+                note_error(context, "(UTF8) Malformed four-byte character");
+                ch = byte0;
+            }
+            else {
+                int32_t byte2 = (context->parse_byte)(context->parserock);
+                if (byte2 < 0) {
+                    note_error(context, "(UTF8) Incomplete four-byte character");
+                    ch = byte0;
+                }
+                else if ((byte2 & 0xC0) != 0x80) {
+                    note_error(context, "(UTF8) Malformed four-byte character");
+                    ch = byte0;
+                }
+                else {
+                    int32_t byte3 = (context->parse_byte)(context->parserock);
+                    if (byte3 < 0) {
+                        note_error(context, "(UTF8) Incomplete four-byte character");
+                        ch = byte0;
+                    }
+                    else if ((byte3 & 0xC0) != 0x80) {
+                        note_error(context, "(UTF8) Malformed four-byte character");
+                        ch = byte0;
+                    }
+                    else {
+                        ch = (((byte0 & 0x07)<<18)   & 0x1C0000);
+                        ch |= (((byte1 & 0x3F)<<12) & 0x03F000);
+                        ch |= (((byte2 & 0x3F)<<6)  & 0x000FC0);
+                        ch |= (((byte3 & 0x3F))     & 0x00003F);
+                    }
+                }
+            }
+        }
         else {
             note_error(context, "(UTF8) Malformed character");
             ch = '?';
