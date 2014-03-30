@@ -35,17 +35,24 @@ typedef enum tokentype_enum {
     tok_Dimension = 14,
     tok_Ident = 15,
     tok_AtKeyword = 16,
+    tok_String = 17,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
 static void note_error(mincss_context *context, char *msg);
 static void putchar_utf8(int32_t val, FILE *fl);
+
 static char *token_name(tokentype tok);
 static tokentype next_token(mincss_context *context);
+
 static int parse_number(mincss_context *context);
+static void parse_string(mincss_context *context, int32_t delim);
 static int parse_ident(mincss_context *context);
+static int parse_universal_newline(mincss_context *context);
+
 static int32_t next_char(mincss_context *context);
 static void putback_char(mincss_context *context, int count);
+static void erase_char(mincss_context *context, int count);
 
 mincss_context *mincss_init()
 {
@@ -191,6 +198,7 @@ static char *token_name(tokentype tok)
     case tok_Dimension: return "Dimension";
     case tok_Ident: return "Ident";
     case tok_AtKeyword: return "AtKeyword";
+    case tok_String: return "String";
     default: return "???";
     }
 }
@@ -203,7 +211,7 @@ static tokentype next_token(mincss_context *context)
 {
     if (context->tokenlen) {
         int extra = context->tokenmark - context->tokenlen;
-        if (extra) {
+        if (extra > 0) {
             memmove(context->token, context->token+context->tokenlen, extra*sizeof(int32_t));
         }
         context->tokenlen = 0;
@@ -251,6 +259,11 @@ static tokentype next_token(mincss_context *context)
             }
             continue;
         }
+    }
+
+    if (ch == '"' || ch == '\'') {
+        parse_string(context, ch);
+        return tok_String;
     }
 
     if (IS_NUMBER_START(ch)) {
@@ -377,6 +390,41 @@ static int parse_number(mincss_context *context)
     }
 }
 
+static void parse_string(mincss_context *context, int32_t delim)
+{
+    int count = 0;
+
+    while (1) {
+        int32_t ch = next_char(context);
+        if (ch == -1) {
+            note_error(context, "Unterminated string");
+            return;
+        }
+        count++;
+
+        if (ch == delim)
+            return;
+
+        if (ch == '\\') {
+            int len = parse_universal_newline(context);
+            if (len) {
+                erase_char(context, len+1);
+                count -= 1;
+                continue;
+            }
+            /*### hex escapes */
+            continue;
+        }
+
+        /* If a string runs into an unescaped newline, we report an error
+           and pretend the string ended. */
+        if (ch == '\n' || ch == '\r' || ch == '\f') {
+            note_error(context, "Unterminated string");
+            return;
+        }
+    }
+}
+
 static int parse_ident(mincss_context *context)
 {
     int count = 0;
@@ -415,6 +463,33 @@ static int parse_ident(mincss_context *context)
         }
         continue;
     }
+}
+
+static int parse_universal_newline(mincss_context *context)
+{
+    int count = 0;
+
+    int32_t ch = next_char(context);
+    if (ch == -1)
+        return 0;
+    count++;
+
+    if (ch == '\n' || ch == '\f')
+        return count;
+
+    if (ch == '\r') {
+        ch = next_char(context);
+        if (ch == -1)
+            return count;
+        count++;
+        if (ch == '\n')
+            return count;
+        putback_char(context, 1);
+        return count-1;
+    }
+
+    putback_char(context, count);
+    return 0;
 }
 
 static int32_t next_char(mincss_context *context)
@@ -550,9 +625,22 @@ static void putback_char(mincss_context *context, int count)
     if (count > context->tokenlen) {
         note_error(context, "(Internal) Put back too many characters");
         context->tokenlen = 0;
+        return;
     }
-    else {
-        context->tokenlen -= count;
-    }
+
+    context->tokenlen -= count;
 }
 
+static void erase_char(mincss_context *context, int count)
+{
+    if (count > context->tokenlen) {
+        note_error(context, "(Internal) Erase too many characters");
+        return;
+    }
+
+    int diff = context->tokenmark - context->tokenlen;
+    if (diff > 0)
+        memmove(context->token+(context->tokenlen - count), context->token+context->tokenlen, diff*sizeof(int32_t));
+    context->tokenmark -= count;
+    context->tokenlen -= count;
+}
