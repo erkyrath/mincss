@@ -338,19 +338,46 @@ static int32_t next_char(mincss_context *context)
         else if (byte0 < 0x80) {
             ch = byte0;
         }
-        else if ((byte0 & 0xe0) == 0xc0) {
+        else if ((byte0 & 0xE0) == 0xC0) {
             int32_t byte1 = (context->parse_byte)(context->parserock);
             if (byte1 < 0) {
                 note_error(context, "(UTF8) Incomplete two-byte character");
                 ch = byte0;
             }
-            else if ((byte1 & 0xc0) != 0x80) {
+            else if ((byte1 & 0xC0) != 0x80) {
                 note_error(context, "(UTF8) Malformed two-byte character");
                 ch = byte0;
             }
             else {
-                ch = (byte0 & 0x1f) << 6;
-                ch |= (byte1 & 0x3f);
+                ch = (byte0 & 0x1F) << 6;
+                ch |= (byte1 & 0x3F);
+            }
+        }
+        else if ((byte0 & 0xF0) == 0xE0) {
+            int32_t byte1 = (context->parse_byte)(context->parserock);
+            if (byte1 < 0) {
+                note_error(context, "(UTF8) Incomplete three-byte character");
+                ch = byte0;
+            }
+            else if ((byte1 & 0xC0) != 0x80) {
+                note_error(context, "(UTF8) Malformed three-byte character");
+                ch = byte0;
+            }
+            else {
+                int32_t byte2 = (context->parse_byte)(context->parserock);
+                if (byte2 < 0) {
+                    note_error(context, "(UTF8) Incomplete three-byte character");
+                    ch = byte0;
+                }
+                else if ((byte2 & 0xC0) != 0x80) {
+                    note_error(context, "(UTF8) Malformed three-byte character");
+                    ch = byte0;
+                }
+                else {
+                    ch = (((byte0 & 0x0F)<<12)  & 0x0000F000);
+                    ch |= (((byte1 & 0x3F)<<6) & 0x00000FC0);
+                    ch |= (((byte2 & 0x3F))    & 0x0000003F);
+                }
             }
         }
         /*### more cases */
