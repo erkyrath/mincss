@@ -31,6 +31,7 @@ typedef enum tokentype_enum {
     tok_Colon = 10,
     tok_Semicolon = 11,
     tok_Comment = 12,
+    tok_Percentage = 13,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -182,6 +183,7 @@ static char *token_name(tokentype tok)
     case tok_Colon: return "Colon";
     case tok_Semicolon: return "Semicolon";
     case tok_Comment: return "Comment";
+    case tok_Percentage: return "Percentage";
     default: return "???";
     }
 }
@@ -243,6 +245,12 @@ static tokentype next_token(mincss_context *context)
             ch = next_char(context);
             return tok_Delim;
         }
+        ch = next_char(context);
+        if (ch == -1)
+            return tok_Number;
+        if (ch == '%')
+            return tok_Percentage;
+        putback_char(context, 1);
         return tok_Number;
     }
 
