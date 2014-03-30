@@ -34,6 +34,7 @@ typedef enum tokentype_enum {
     tok_Percentage = 13,
     tok_Dimension = 14,
     tok_Ident = 15,
+    tok_AtKeyword = 16,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -189,6 +190,7 @@ static char *token_name(tokentype tok)
     case tok_Percentage: return "Percentage";
     case tok_Dimension: return "Dimension";
     case tok_Ident: return "Ident";
+    case tok_AtKeyword: return "AtKeyword";
     default: return "???";
     }
 }
@@ -230,6 +232,12 @@ static tokentype next_token(mincss_context *context)
         return tok_Colon;
     case ';':
         return tok_Semicolon;
+    case '@': {
+        int len = parse_ident(context);
+        if (len == 0) 
+            return tok_Delim;
+        return tok_AtKeyword;
+    }
     }
 
     if (IS_WHITESPACE(ch)) {
