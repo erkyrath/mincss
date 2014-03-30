@@ -265,6 +265,14 @@ static tokentype next_token(mincss_context *context)
             return tok_Number;
         if (ch == '%')
             return tok_Percentage;
+        if (ch == '-' || IS_IDENT_START(ch)) {
+            putback_char(context, 1);
+            int len = parse_ident(context);
+            if (len > 0)
+                return tok_Dimension;
+            else
+                return tok_Number;
+        }
         putback_char(context, 1);
         return tok_Number;
     }
@@ -386,6 +394,8 @@ static int parse_ident(mincss_context *context)
         }
         count++;
     }
+
+    /* ### This does not account for backslash-escapes. */
 
     if (!IS_IDENT_START(ch)) {
         putback_char(context, count);
