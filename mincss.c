@@ -197,7 +197,7 @@ static char *token_name(tokentype tok)
 
 #define IS_WHITESPACE(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\f')
 #define IS_NUMBER_START(ch) (((ch) >= '0' && (ch) <= '9') || ((ch) == '.'))
-#define IS_IDENT_START(ch) (((ch) >= 'A' && (ch) <= 'Z') || ((ch) >= 'a' && (ch) <= 'z') || (ch) == '_')
+#define IS_IDENT_START(ch) (((ch) >= 'A' && (ch) <= 'Z') || ((ch) >= 'a' && (ch) <= 'z') || (ch) == '_' || (ch >= 0xA0))
 
 static tokentype next_token(mincss_context *context)
 {
@@ -395,6 +395,8 @@ static int parse_ident(mincss_context *context)
         count++;
     }
 
+    /* Note that Unicode characters from 0xA0 on can *all* be used in
+       identifiers. IS_IDENT_START includes these. */
     /* ### This does not account for backslash-escapes. */
 
     if (!IS_IDENT_START(ch)) {
