@@ -32,6 +32,8 @@ typedef enum tokentype_enum {
     tok_Semicolon = 11,
     tok_Comment = 12,
     tok_Percentage = 13,
+    tok_Dimension = 14,
+    tok_Ident = 15,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -40,6 +42,7 @@ static void putchar_utf8(int32_t val, FILE *fl);
 static char *token_name(tokentype tok);
 static tokentype next_token(mincss_context *context);
 static int parse_number(mincss_context *context);
+static int parse_ident(mincss_context *context);
 static int32_t next_char(mincss_context *context);
 static void putback_char(mincss_context *context, int count);
 
@@ -184,11 +187,15 @@ static char *token_name(tokentype tok)
     case tok_Semicolon: return "Semicolon";
     case tok_Comment: return "Comment";
     case tok_Percentage: return "Percentage";
+    case tok_Dimension: return "Dimension";
+    case tok_Ident: return "Ident";
     default: return "???";
     }
 }
 
 #define IS_WHITESPACE(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\f')
+#define IS_NUMBER_START(ch) (((ch) >= '0' && (ch) <= '9') || ((ch) == '.'))
+#define IS_IDENT_START(ch) (((ch) >= 'A' && (ch) <= 'Z') || ((ch) >= 'a' && (ch) <= 'z') || (ch) == '_')
 
 static tokentype next_token(mincss_context *context)
 {
@@ -238,7 +245,7 @@ static tokentype next_token(mincss_context *context)
         }
     }
 
-    if ((ch >= '0' && ch <= '9') || (ch == '.')) {
+    if (IS_NUMBER_START(ch)) {
         putback_char(context, 1);
         int numlen = parse_number(context);
         if (numlen == 0) {
@@ -252,6 +259,16 @@ static tokentype next_token(mincss_context *context)
             return tok_Percentage;
         putback_char(context, 1);
         return tok_Number;
+    }
+
+    if (ch == '-' || IS_IDENT_START(ch)) {
+        putback_char(context, 1);
+        int len = parse_ident(context);
+        if (len == 0) {
+            ch = next_char(context);
+            return tok_Delim;
+        }
+        return tok_Ident;
     }
 
     if (ch == '/') {
@@ -288,7 +305,7 @@ static int parse_number(mincss_context *context)
         return 0;
     count++;
 
-    if (!((ch >= '0' && ch <= '9') || (ch == '.'))) {
+    if (!IS_NUMBER_START(ch)) {
         putback_char(context, count);
         return 0;
     }
@@ -340,6 +357,42 @@ static int parse_number(mincss_context *context)
             return count-1;
         }
         /* digit */
+        continue;
+    }
+}
+
+static int parse_ident(mincss_context *context)
+{
+    int count = 0;
+
+    int32_t ch = next_char(context);
+    if (ch == -1)
+        return 0;
+    count++;
+
+    if (ch == '-') {
+        ch = next_char(context);
+        if (ch == -1) {
+            putback_char(context, count);
+            return 0;
+        }
+        count++;
+    }
+
+    if (!IS_IDENT_START(ch)) {
+        putback_char(context, count);
+        return 0;
+    }
+
+    while (1) {
+        ch = next_char(context);
+        if (ch == -1) 
+            return count;
+        count++;
+        if (!(IS_IDENT_START(ch) || (ch == '-') || (ch >= '0' && ch <= '9'))) {
+            putback_char(context, 1);
+            return count-1;
+        }
         continue;
     }
 }
