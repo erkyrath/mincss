@@ -49,6 +49,7 @@ static int parse_number(mincss_context *context);
 static void parse_string(mincss_context *context, int32_t delim);
 static int parse_ident(mincss_context *context);
 static int parse_universal_newline(mincss_context *context);
+static int parse_escaped_hex(mincss_context *context, int32_t *val);
 
 static int32_t next_char(mincss_context *context);
 static void putback_char(mincss_context *context, int count);
@@ -205,6 +206,7 @@ static char *token_name(tokentype tok)
 
 #define IS_WHITESPACE(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\f')
 #define IS_NUMBER_START(ch) (((ch) >= '0' && (ch) <= '9') || ((ch) == '.'))
+#define IS_HEX_DIGIT(ch) (((ch) >= '0' && (ch) <= '9') || ((ch) >= 'a' && (ch) <= 'f') || ((ch) >= 'A' && (ch) <= 'F'))
 #define IS_IDENT_START(ch) (((ch) >= 'A' && (ch) <= 'Z') || ((ch) >= 'a' && (ch) <= 'z') || (ch) == '_' || (ch >= 0xA0))
 
 static tokentype next_token(mincss_context *context)
@@ -412,7 +414,14 @@ static void parse_string(mincss_context *context, int32_t delim)
                 count -= 1;
                 continue;
             }
-            /*### hex escapes */
+            int32_t val = '?';
+            len = parse_escaped_hex(context, &val);
+            if (len) {
+                erase_char(context, len);
+                /* Replace the backslash with whatever hex value we got */
+                context->token[context->tokenlen-1] = val;
+                continue;
+            }
             continue;
         }
 
@@ -490,6 +499,50 @@ static int parse_universal_newline(mincss_context *context)
 
     putback_char(context, count);
     return 0;
+}
+
+static int parse_escaped_hex(mincss_context *context, int32_t *retval)
+{
+    /* The backslash has already been accepted. */
+    int count = 0;
+    int32_t res = 0;
+    int32_t ch = -1;
+
+    while (1) {
+        ch = next_char(context);
+        if (ch == -1) {
+            if (count)
+                *retval = res;
+            return count;
+        }
+        count++;
+        if (count > 6)
+            break;
+
+        if (!IS_HEX_DIGIT(ch))
+            break;
+        if (ch >= '0' && ch <= '9')
+            ch -= '0';
+        else if (ch >= 'A' && ch <= 'F')
+            ch -= ('A'-10);
+        else if (ch >= 'a' && ch <= 'f')
+            ch -= ('a'-10);
+        else
+            ch = 0;
+        res = (res << 4) + ch;
+    }
+
+    if (IS_WHITESPACE(ch) && count >= 2) {
+        /* swallow it */
+        *retval = res;
+        return count;
+    }
+
+    putback_char(context, 1);
+    count -= 1;
+    if (count)
+        *retval = res;
+    return count;
 }
 
 static int32_t next_char(mincss_context *context)
