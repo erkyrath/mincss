@@ -410,6 +410,7 @@ static void parse_string(mincss_context *context, int32_t delim)
         if (ch == '\\') {
             int len = parse_universal_newline(context);
             if (len) {
+                /* Backslashed newline: drop it. */
                 erase_char(context, len+1);
                 count -= 1;
                 continue;
@@ -417,11 +418,21 @@ static void parse_string(mincss_context *context, int32_t delim)
             int32_t val = '?';
             len = parse_escaped_hex(context, &val);
             if (len) {
+                /* Backslashed hex: drop the hex string... */
                 erase_char(context, len);
-                /* Replace the backslash with whatever hex value we got */
+                /* Replace the backslash itself with the named character. */
                 context->token[context->tokenlen-1] = val;
                 continue;
             }
+            /* Any other character: take the next char literally
+               (substitute it for the backslash). */
+            ch = next_char(context);
+            if (ch == -1) {
+                note_error(context, "Unterminated string (ends with backslash)");
+                return;
+            }
+            erase_char(context, 1);
+            context->token[context->tokenlen-1] = ch;
             continue;
         }
 
