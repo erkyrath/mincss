@@ -214,11 +214,16 @@ static char *token_name(tokentype tok)
     }
 }
 
+/* Some macro tests which can be applied to (unicode) characters. */
+
 #define IS_WHITESPACE(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\f')
 #define IS_NUMBER_START(ch) (((ch) >= '0' && (ch) <= '9') || ((ch) == '.'))
 #define IS_HEX_DIGIT(ch) (((ch) >= '0' && (ch) <= '9') || ((ch) >= 'a' && (ch) <= 'f') || ((ch) >= 'A' && (ch) <= 'F'))
 #define IS_IDENT_START(ch) (((ch) >= 'A' && (ch) <= 'Z') || ((ch) >= 'a' && (ch) <= 'z') || (ch) == '_' || (ch >= 0xA0))
 
+/* Grab the next token. Returns the tokentype. The token's text is available
+   at context->token, length context->tokenlen.
+*/
 static tokentype next_token(mincss_context *context)
 {
     if (context->tokenlen) {
@@ -566,6 +571,18 @@ static int parse_escaped_hex(mincss_context *context, int32_t *retval)
     return count;
 }
 
+/* Accept a new character into the token. If there are pushed-back
+   characters, take the next one. If not, pluck a new one from the
+   reader function. If no more characters are available, return -1.
+
+   This advances tokenlen (and tokenmark, if the reader function is
+   called). However, in the -1, neither tokenlen and tokenmark changes.
+   (When we're at the end of the stream, you can call next_char() forever
+   and keep getting -1 back but the state will not change.)
+
+   Most of the ugliness in this function is UTF-8 parsing (for the
+   mincss_parse_bytes_utf8() case).   
+*/
 static int32_t next_char(mincss_context *context)
 {
     int32_t ch;
@@ -694,6 +711,9 @@ static int32_t next_char(mincss_context *context)
     return ch;
 }
 
+/* Push back some characters in the buffer -- reject them from the current
+   token. (This decreases tokenlen without changing tokenmark.)
+*/
 static void putback_char(mincss_context *context, int count)
 {
     if (count > context->tokenlen) {
@@ -705,6 +725,10 @@ static void putback_char(mincss_context *context, int count)
     context->tokenlen -= count;
 }
 
+/* Remove some characters from the end of the current token.
+   (Pushed-back characters are not affected. This moves both tokenlen
+   and tokenmark back.)
+*/
 static void erase_char(mincss_context *context, int count)
 {
     if (count > context->tokenlen) {
