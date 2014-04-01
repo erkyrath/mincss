@@ -13,6 +13,8 @@ struct mincss_context_struct {
     mincss_byte_reader parse_byte;
     mincss_error_handler parse_error;
 
+    int lexer_debug;
+
     /* The lexer maintains a buffer of Unicode characters.
        tokenbufsize is the available malloced size of the buffer.
        tokenmark is the number of characters currently in the buffer.
@@ -78,6 +80,11 @@ void mincss_final(mincss_context *context)
     free(context);
 }
 
+void mincss_set_lexer_debug(mincss_context *context, int flag)
+{
+    context->lexer_debug = flag;
+}
+
 void mincss_parse_unicode(mincss_context *context, 
     mincss_unicode_reader reader,
     mincss_error_handler error,
@@ -128,20 +135,26 @@ static void perform_parse(mincss_context *context)
         return;
     }
 
-    while (1) {
-        int ix;
-        tokentype toktype = next_token(context);
-        if (toktype == tok_EOF)
-            break;
-        printf("<%s> \"", token_name(toktype));
-        for (ix=0; ix<context->tokenlen; ix++) {
-            int32_t ch = context->token[ix];
-            if (ch < 32)
-                printf("^%c", ch+64);
-            else
-                putchar_utf8(ch, stdout);
+    if (context->lexer_debug) {
+        /* Just read tokens and print them until the stream is done. */
+        while (1) {
+            int ix;
+            tokentype toktype = next_token(context);
+            if (toktype == tok_EOF)
+                break;
+            printf("<%s> \"", token_name(toktype));
+            for (ix=0; ix<context->tokenlen; ix++) {
+                int32_t ch = context->token[ix];
+                if (ch < 32)
+                    printf("^%c", ch+64);
+                else
+                    putchar_utf8(ch, stdout);
+            }
+            printf("\"\n");
         }
-        printf("\"\n");
+    }
+    else {
+        /* ### real parsing */
     }
 
     free(context->token);

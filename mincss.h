@@ -35,3 +35,9 @@ extern void mincss_parse_unicode(mincss_context *context,
     mincss_unicode_reader reader,
     mincss_error_handler error,
     void *rock);
+
+/* If this flag is set, the parsing process just prints tokens instead
+   of doing a full parse. (Used for debugging the lexer.)
+*/
+extern void mincss_set_lexer_debug(mincss_context *context, int flag);
+
