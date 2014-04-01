@@ -6,11 +6,21 @@
 struct mincss_context_struct {
     int errorcount;
 
+    /* These fields are only valid during a mincss_parse_bytes_utf8()
+       or mincss_parse_unicode() call. */
     void *parserock;
     mincss_unicode_reader parse_unicode;
     mincss_byte_reader parse_byte;
     mincss_error_handler parse_error;
 
+    /* The lexer maintains a buffer of Unicode characters.
+       tokenbufsize is the available malloced size of the buffer.
+       tokenmark is the number of characters currently in the buffer.
+       tokenlen is the number of characters accepted into the current token.
+       (tokenmark always >= tokenlen. tokenmark will be greater than tokenlen
+       if some characters have been pushed back -- that is, not accepted
+       in the current token, available for the next token.)
+    */
     int32_t *token;
     int tokenbufsize;
     int tokenmark;
