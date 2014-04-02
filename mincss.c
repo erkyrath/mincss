@@ -31,23 +31,23 @@ struct mincss_context_struct {
 
 typedef enum tokentype_enum {
     tok_EOF = 0,
-    tok_Number = 1,
-    tok_LBrace = 2,
-    tok_RBrace = 3,
-    tok_LBracket = 4,
-    tok_RBracket = 5,
-    tok_LParen = 6,
-    tok_RParen = 7,
-    tok_Delim = 8,
-    tok_Space = 9,
-    tok_Colon = 10,
-    tok_Semicolon = 11,
-    tok_Comment = 12,
-    tok_Percentage = 13,
-    tok_Dimension = 14,
-    tok_Ident = 15,
-    tok_AtKeyword = 16,
-    tok_String = 17,
+    tok_Delim = 1,
+    tok_Space = 2,
+    tok_Comment = 3,
+    tok_Number = 4,
+    tok_String = 5,
+    tok_Ident = 6,
+    tok_AtKeyword = 7,
+    tok_Percentage = 8,
+    tok_Dimension = 9,
+    tok_LBrace = 10,
+    tok_RBrace = 11,
+    tok_LBracket = 12,
+    tok_RBracket = 13,
+    tok_LParen = 14,
+    tok_RParen = 15,
+    tok_Colon = 16,
+    tok_Semicolon = 17,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -206,23 +206,23 @@ static char *token_name(tokentype tok)
 {
     switch (tok) {
     case tok_EOF: return "EOF";
+    case tok_Delim: return "Delim";
+    case tok_Space: return "Space";
+    case tok_Comment: return "Comment";
     case tok_Number: return "Number";
+    case tok_String: return "String";
+    case tok_Ident: return "Ident";
+    case tok_AtKeyword: return "AtKeyword";
+    case tok_Percentage: return "Percentage";
+    case tok_Dimension: return "Dimension";
     case tok_LBrace: return "LBrace";
     case tok_RBrace: return "RBrace";
     case tok_LBracket: return "LBracket";
     case tok_RBracket: return "RBracket";
     case tok_LParen: return "LParen";
     case tok_RParen: return "RParen";
-    case tok_Delim: return "Delim";
-    case tok_Space: return "Space";
     case tok_Colon: return "Colon";
     case tok_Semicolon: return "Semicolon";
-    case tok_Comment: return "Comment";
-    case tok_Percentage: return "Percentage";
-    case tok_Dimension: return "Dimension";
-    case tok_Ident: return "Ident";
-    case tok_AtKeyword: return "AtKeyword";
-    case tok_String: return "String";
     default: return "???";
     }
 }
