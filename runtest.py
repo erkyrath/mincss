@@ -23,6 +23,14 @@ class TokenBase:
         else:
             return '<%s %s>' % (self.name, repr(self.text),)
 
+    def match(self, token):
+        if self.name != token.name:
+            return False
+        if self.text is not None:
+            if self.text != token.text:
+                return False
+        return True
+
 class EOF(TokenBase):
     name = 'EOF'
 class Delim(TokenBase):
@@ -71,9 +79,15 @@ tokenlinepat = re.compile('^<([A-Za-z]*)> *"(.*)"$')
 errorlinepat = re.compile('^MinCSS error: (.*)$')
 
 def lextest(input, wanttokens, wanterrors=[]):
+    if type(input) is unicode:
+        input = input.encode('utf-8')
+        
     popen = subprocess.Popen(['./test', '--lexer'],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdout, stderr) = popen.communicate(input)
+
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
 
     errors = []
     for ln in stderr.split('\n'):
@@ -95,8 +109,6 @@ def lextest(input, wanttokens, wanterrors=[]):
             continue
         tokens.append(cla(val))
 
-    print '###', errors
-    print '###', tokens
     for (ix, error) in enumerate(errors):
         if ix >= len(wanterrors):
             reporterror('unexpected error: %r' % (error,))
@@ -106,6 +118,67 @@ def lextest(input, wanttokens, wanterrors=[]):
                 reporterror('error mismatch: wanted %r, got %r' % (wanted, error,))
     for wanted in wanterrors[len(errors):]:
         reporterror('failed to get error: %r' % (wanted,))
-        
 
-lextest('foo  bar\n', [])
+    for (ix, token) in enumerate(tokens):
+        if ix >= len(wanttokens):
+            reporterror('unexpected token: %r' % (token,))
+        else:
+            wanted = wanttokens[ix]
+            if type(wanted) is TrackMetaClass:
+                wanted = wanted()
+            if not wanted.match(token):
+                reporterror('token mismatch: wanted %r, got %r' % (wanted, token,))
+    for wanted in wanttokens[len(tokens):]:
+        reporterror('failed to get token: %r' % (wanted,))
+    
+lextestlist = [
+    (' \f\t\n\r \n',
+     [Space(' ^L^I^J^M ^J')]),
+    
+    ('/* */',
+     [Comment('/* */')]),
+    ('/* * // */ /****/',
+     [Comment('/* * // */'), Space, Comment('/****/')]),
+    ('/* \n */',
+     [Comment('/* ^J */')]),
+    ('/* *',
+     [Comment('/* *')],
+     ['Unterminated comment']),
+    
+    ('foo',
+     [Ident('foo')]),
+    ('foo bar\n',
+     [Ident('foo'), Space(' '), Ident('bar'), Space('^J')]),
+    ('-foo123- _0!',
+     [Ident('-foo123-'), Space, Ident('_0'), Delim('!')]),
+    (u'f\u00E4f \u016c\u13a3\u4e01\ufb00',
+     [Ident(u'f\u00E4f'), Space, Ident(u'\u016c\u13a3\u4e01\ufb00')]),
+    
+    ('@foo @-bar @123',
+     [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
+    (u'@\xE5\uFB00',
+     [AtKeyword(u'@\xe5\ufb00')]),
+    
+    ('1234',
+     [Number('1234')]),
+    ('1.51 5. .5 6.',
+     [Number('1.51'), Space, Number('5'), Delim('.'), Space, Number('.5'), Space, Number('6'), Delim('.')]),
+    ('12..3 1.x3',
+     [Number('12'), Delim('.'), Number('.3'), Space, Number('1'), Delim('.'), Ident('x3')]),
+    ('1.23.4',
+     [Number('1.23'), Number('.4')]),
+    
+    ('89% .1% .%',
+     [Percentage('89%'), Space, Percentage('.1%'), Space, Delim('.'), Delim('%')]),
+    ]
+
+for tup in lextestlist:
+    input = tup[0]
+    tokens = tup[1]
+    errors = []
+    if len(tup) == 3:
+        errors = tup[2]
+    lextest(input, tokens, errors)
+
+if errorcount:
+    print 'FAILED, %d errors' % (errorcount,)
