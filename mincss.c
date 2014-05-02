@@ -577,6 +577,7 @@ static int parse_uri_body(mincss_context *context)
             count++;
             if (ch < ' ' || ch == '"' || ch == '\'' || ch == '(' || ch == ')' || ch == '\\' || (ch > '~' && ch < 0xA0)) {
                 putback_char(context, 1);
+                count -= 1;
                 break;
             }
             continue;

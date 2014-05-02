@@ -212,8 +212,8 @@ lextestlist = [
     ('"x\\E4y\\E5 z\\fb00"',
      [String(u'"x\u00e4y\u00e5z\ufb00"')]),
 
-    ('url("http://x")',
-     [URI('url("http://x")')]),
+    ('url("http://x") url(http://x/y)',
+     [URI('url("http://x")'), Space, URI('url(http://x/y)')]),
     ('url curl urli',
      [Ident('url'), Space, Ident('curl'), Space, Ident('urli')]),
     ('curl("x") Url("x") URL("(")',
@@ -228,11 +228,21 @@ lextestlist = [
      [Ident('url'), LParen, RParen]),
     ('url() url(() url(   )',
      [Ident('url'), LParen, RParen, Space, Ident('url'), LParen, LParen, RParen, Space, Ident('url'), LParen, Space, RParen]),
+    ('url(',
+     [Ident('url'), LParen]),
+    ('url( X ',
+     [Ident('url'), LParen, Space, Ident('X'), Space]),
+    ('url("xyz" ',
+     [Ident('url'), LParen, String('"xyz"'), Space]),
     ('url(")',
      [Ident('url'), LParen, String('")')],
      ['Unterminated string', 'Unterminated string']),
     ('url( "x" 3)',
-     [Ident('url'), LParen, Space, String('"x"'), Space, Number('3'), RParen])
+     [Ident('url'), LParen, Space, String('"x"'), Space, Number('3'), RParen]),
+    ('url(x"y")',
+     [Ident('url'), LParen, Ident('x'), String('"y"'), RParen]),
+    (u'url(\u00A0) url(\u009F)',
+     [URI(u'url(\u00A0)'), Space, Ident('url'), LParen, Delim(u'\u009F'), RParen]),
     ]
 
 for tup in lextestlist:
