@@ -160,6 +160,8 @@ lextestlist = [
      [Ident('-foo123-'), Space, Ident('_0'), Delim('!')]),
     (u'f\u00E4f \u016c\u13a3\u4e01\ufb00',
      [Ident(u'f\u00E4f'), Space, Ident(u'\u016c\u13a3\u4e01\ufb00')]),
+    (u'fo\u0084x  \u009F-i \u007F\u00A0\u00A0',
+     [Ident('fo'), Delim(u'\u0084'), Ident('x'), Space, Delim(u'\u009F'), Ident('-i'), Space, Delim(u'\u007F'), Ident(u'\u00A0\u00A0')]),
     
     ('@foo @-bar @123',
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
