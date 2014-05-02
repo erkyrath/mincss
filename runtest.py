@@ -216,6 +216,8 @@ lextestlist = [
      [Ident('url'), Space, Ident('curl'), Space, Ident('urli')]),
     ('curl("x") Url("x")',
      [Ident('curl'), LParen, String('"x"'), RParen, Space, Ident('Url'), LParen, String('"x"'), RParen]),
+    ('url(\n" "\n)',
+     [URI('url(^J" "^J)')]),
     (u'url( \'x\'\t) url("\\61:\u00E4")',
      [URI('url( \'x\'^I)'), Space, URI(u'url("a:\u00E4")')]),
     ('url "x"',

@@ -61,7 +61,7 @@ static tokentype next_token(mincss_context *context);
 static int parse_number(mincss_context *context);
 static int parse_string(mincss_context *context, int32_t delim);
 static int parse_ident(mincss_context *context);
-static int parse_paren_string(mincss_context *context);
+static int parse_uri_body(mincss_context *context);
 static int parse_universal_newline(mincss_context *context);
 static int parse_escaped_hex(mincss_context *context, int32_t *val);
 
@@ -332,7 +332,7 @@ static tokentype next_token(mincss_context *context)
             return tok_Delim;
         }
         if (len == 3 && match_accepted_chars(context, "url")) {
-            int sublen = parse_paren_string(context);
+            int sublen = parse_uri_body(context);
             if (sublen > 0)
                 return tok_URI;
         }
@@ -522,7 +522,7 @@ static int parse_ident(mincss_context *context)
     }
 }
 
-static int parse_paren_string(mincss_context *context)
+static int parse_uri_body(mincss_context *context)
 {
     int count = 0;
 
@@ -535,6 +535,8 @@ static int parse_paren_string(mincss_context *context)
         putback_char(context, 1);
         return 0;
     }
+
+    /* ### Or the other URL format, please. */
 
     while (1) {
         ch = next_char(context);
@@ -819,8 +821,8 @@ static void erase_char(mincss_context *context, int count)
     context->tokenlen -= count;
 }
 
-/* Compare the tail of the current token against a given (ASCII) string.
-   Returns whether they match.
+/* Compare the tail of the current token against a given (ASCII) string,
+   case-insensitively. Returns whether they match.
 */
 static int match_accepted_chars(mincss_context *context, char *str)
 {
@@ -831,6 +833,7 @@ static int match_accepted_chars(mincss_context *context, char *str)
 
     for (ix=0; ix<len; ix++) {
         int32_t ch = (unsigned char)(str[ix]);
+        /*###case!*/
         if (ch != context->token[context->tokenlen - len + ix])
             return 0;
     }
