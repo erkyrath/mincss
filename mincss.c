@@ -40,14 +40,15 @@ typedef enum tokentype_enum {
     tok_AtKeyword = 7,
     tok_Percentage = 8,
     tok_Dimension = 9,
-    tok_LBrace = 10,
-    tok_RBrace = 11,
-    tok_LBracket = 12,
-    tok_RBracket = 13,
-    tok_LParen = 14,
-    tok_RParen = 15,
-    tok_Colon = 16,
-    tok_Semicolon = 17,
+    tok_URI = 10,
+    tok_LBrace = 11,
+    tok_RBrace = 12,
+    tok_LBracket = 13,
+    tok_RBracket = 14,
+    tok_LParen = 15,
+    tok_RParen = 16,
+    tok_Colon = 17,
+    tok_Semicolon = 18,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -58,14 +59,16 @@ static char *token_name(tokentype tok);
 static tokentype next_token(mincss_context *context);
 
 static int parse_number(mincss_context *context);
-static void parse_string(mincss_context *context, int32_t delim);
+static int parse_string(mincss_context *context, int32_t delim);
 static int parse_ident(mincss_context *context);
+static int parse_paren_string(mincss_context *context);
 static int parse_universal_newline(mincss_context *context);
 static int parse_escaped_hex(mincss_context *context, int32_t *val);
 
 static int32_t next_char(mincss_context *context);
 static void putback_char(mincss_context *context, int count);
 static void erase_char(mincss_context *context, int count);
+static int match_accepted_chars(mincss_context *context, char *str);
 
 mincss_context *mincss_init()
 {
@@ -215,6 +218,7 @@ static char *token_name(tokentype tok)
     case tok_AtKeyword: return "AtKeyword";
     case tok_Percentage: return "Percentage";
     case tok_Dimension: return "Dimension";
+    case tok_URI: return "URI";
     case tok_LBrace: return "LBrace";
     case tok_RBrace: return "RBrace";
     case tok_LBracket: return "LBracket";
@@ -327,6 +331,11 @@ static tokentype next_token(mincss_context *context)
             ch = next_char(context);
             return tok_Delim;
         }
+        if (len == 3 && match_accepted_chars(context, "url")) {
+            int sublen = parse_paren_string(context);
+            if (sublen > 0)
+                return tok_URI;
+        }
         return tok_Ident;
     }
 
@@ -420,7 +429,7 @@ static int parse_number(mincss_context *context)
     }
 }
 
-static void parse_string(mincss_context *context, int32_t delim)
+static int parse_string(mincss_context *context, int32_t delim)
 {
     int count = 0;
 
@@ -428,12 +437,12 @@ static void parse_string(mincss_context *context, int32_t delim)
         int32_t ch = next_char(context);
         if (ch == -1) {
             note_error(context, "Unterminated string");
-            return;
+            return count;
         }
         count++;
 
         if (ch == delim)
-            return;
+            return count;
 
         if (ch == '\\') {
             int len = parse_universal_newline(context);
@@ -457,7 +466,7 @@ static void parse_string(mincss_context *context, int32_t delim)
             ch = next_char(context);
             if (ch == -1) {
                 note_error(context, "Unterminated string (ends with backslash)");
-                return;
+                return count;
             }
             erase_char(context, 1);
             context->token[context->tokenlen-1] = ch;
@@ -468,7 +477,7 @@ static void parse_string(mincss_context *context, int32_t delim)
            and pretend the string ended. */
         if (ch == '\n' || ch == '\r' || ch == '\f') {
             note_error(context, "Unterminated string");
-            return;
+            return count;
         }
     }
 }
@@ -511,6 +520,60 @@ static int parse_ident(mincss_context *context)
         }
         continue;
     }
+}
+
+static int parse_paren_string(mincss_context *context)
+{
+    int count = 0;
+
+    int32_t ch = next_char(context);
+    if (ch == -1)
+        return 0;
+    count++;
+
+    if (ch != '(') {
+        putback_char(context, 1);
+        return 0;
+    }
+
+    while (1) {
+        ch = next_char(context);
+        if (ch == -1) {
+            putback_char(context, count);
+            return 0;
+        }
+        count++;
+        if (IS_WHITESPACE(ch))
+            continue;
+        if (ch == '"' || ch == '\'') 
+            break;
+        putback_char(context, count);
+        return 0;
+    }
+
+    int len = parse_string(context, ch);
+    if (!len) {
+        putback_char(context, count);
+        return 0;
+    }
+    count += len;
+
+    while (1) {
+        ch = next_char(context);
+        if (ch == -1) {
+            putback_char(context, count);
+            return 0;
+        }
+        count++;
+        if (IS_WHITESPACE(ch))
+            continue;
+        if (ch == ')')
+            break;
+        putback_char(context, count);
+        return 0;
+    }
+
+    return count;    
 }
 
 static int parse_universal_newline(mincss_context *context)
@@ -589,7 +652,7 @@ static int parse_escaped_hex(mincss_context *context, int32_t *retval)
    reader function. If no more characters are available, return -1.
 
    This advances tokenlen (and tokenmark, if the reader function is
-   called). However, in the -1, neither tokenlen and tokenmark changes.
+   called). However, in the -1 case, neither tokenlen and tokenmark changes.
    (When we're at the end of the stream, you can call next_char() forever
    and keep getting -1 back but the state will not change.)
 
@@ -754,4 +817,23 @@ static void erase_char(mincss_context *context, int count)
         memmove(context->token+(context->tokenlen - count), context->token+context->tokenlen, diff*sizeof(int32_t));
     context->tokenmark -= count;
     context->tokenlen -= count;
+}
+
+/* Compare the tail of the current token against a given (ASCII) string.
+   Returns whether they match.
+*/
+static int match_accepted_chars(mincss_context *context, char *str)
+{
+    int ix;
+    int len = strlen(str);
+    if (len > context->tokenlen)
+        return 0;
+
+    for (ix=0; ix<len; ix++) {
+        int32_t ch = (unsigned char)(str[ix]);
+        if (ch != context->token[context->tokenlen - len + ix])
+            return 0;
+    }
+
+    return 1;
 }
