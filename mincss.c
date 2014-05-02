@@ -13,6 +13,7 @@ struct mincss_context_struct {
     mincss_byte_reader parse_byte;
     mincss_error_handler parse_error;
 
+    /* Flag: print lexed tokens as they come in, for testing. */
     int lexer_debug;
 
     /* The lexer maintains a buffer of Unicode characters.
@@ -124,6 +125,9 @@ void mincss_parse_bytes_utf8(mincss_context *context,
     context->parse_error = NULL;
 }
 
+/* Do the parsing work. This is invoked by mincss_parse_unicode() and
+   mincss_parse_bytes_utf8(). 
+*/
 static void perform_parse(mincss_context *context)
 {
     context->errorcount = 0;
@@ -177,6 +181,7 @@ static void note_error(mincss_context *context, char *msg)
         fprintf(stderr, "MinCSS error: %s\n", msg);
 }
 
+/* Send a Unicode character to a UTF8-encoded stream. */
 static void putchar_utf8(int32_t val, FILE *fl)
 {
     if (val < 0) {
@@ -243,6 +248,8 @@ static char *token_name(tokentype tok)
 */
 static tokentype next_token(mincss_context *context)
 {
+    /* Discard all text in the buffer from the previous token. But if
+       any characters were pushed back, keep those. */
     if (context->tokenlen) {
         int extra = context->tokenmark - context->tokenlen;
         if (extra > 0) {
@@ -257,6 +264,7 @@ static tokentype next_token(mincss_context *context)
         return tok_EOF;
     }
 
+    /* Simple one-character tokens. */
     switch (ch) {
     case '(':
         return tok_LParen;
@@ -275,6 +283,7 @@ static tokentype next_token(mincss_context *context)
     case ';':
         return tok_Semicolon;
     case '@': {
+        /* Okay this one is more than one character. */
         int len = parse_ident(context);
         if (len == 0) 
             return tok_Delim;
@@ -360,9 +369,14 @@ static tokentype next_token(mincss_context *context)
         }
     }
 
+    /* Anything not captured above is a one-character Delim token. */
     return tok_Delim;
 }
 
+/* Parse a number (integer or decimal, no minus sign). 
+   Return the number of characters parsed. If the incoming text is not
+   a number, push it back and return 0.
+*/
 static int parse_number(mincss_context *context)
 {
     int count = 0;
@@ -429,6 +443,12 @@ static int parse_number(mincss_context *context)
     }
 }
 
+/* Parse a string. (Assume the leading quote has already been accepted.)
+   Return the number of characters parsed. If the incoming text is not
+   a valid string, push it back and return 0. 
+   (But if we run into an unescaped newline, report an error and return
+   the string so far, no pushback.)
+*/
 static int parse_string(mincss_context *context, int32_t delim)
 {
     int count = 0;
@@ -482,6 +502,10 @@ static int parse_string(mincss_context *context, int32_t delim)
     }
 }
 
+/* Parse an identifier.
+   Return the number of characters parsed. If the incoming text is not
+   an identifier, push it back and return 0.
+*/
 static int parse_ident(mincss_context *context)
 {
     int count = 0;
@@ -522,11 +546,13 @@ static int parse_ident(mincss_context *context)
     }
 }
 
+/* Parse a URI. (Assume the leading "url" has already been accepted.)
+   Return the number of characters parsed. If the incoming text is not
+   a valid URI, push it back and return 0. 
+*/
 static int parse_uri_body(mincss_context *context)
 {
     int count = 0;
-    /* Assume that "url" (case-insensitive) has already been accepted
-       into the token. */
 
     int32_t ch = next_char(context);
     if (ch == -1)
@@ -604,6 +630,10 @@ static int parse_uri_body(mincss_context *context)
     return count;    
 }
 
+/* Parse a single newline of the types that may occur in a text file:
+   \n, \r\n, \r, \f. (In a string, a backslash followed by one of these
+   is discarded.)
+*/
 static int parse_universal_newline(mincss_context *context)
 {
     int count = 0;
@@ -631,6 +661,10 @@ static int parse_universal_newline(mincss_context *context)
     return 0;
 }
 
+/* Parse one to six hex digits followed by a single whitespace character.
+   (In a string, a backslash followed by this is interpreted as a hex
+   escape.)
+*/
 static int parse_escaped_hex(mincss_context *context, int32_t *retval)
 {
     /* The backslash has already been accepted. */
@@ -664,6 +698,7 @@ static int parse_escaped_hex(mincss_context *context, int32_t *retval)
 
     if (IS_WHITESPACE(ch) && count >= 2) {
         /* swallow it */
+        /* ### this should swallow \r\n as well */
         *retval = res;
         return count;
     }
