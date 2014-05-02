@@ -833,8 +833,13 @@ static int match_accepted_chars(mincss_context *context, char *str)
 
     for (ix=0; ix<len; ix++) {
         int32_t ch = (unsigned char)(str[ix]);
-        /*###case!*/
-        if (ch != context->token[context->tokenlen - len + ix])
+        int32_t ch2 = ch;
+        if (ch >= 'a' && ch <= 'z')
+            ch2 -= ('a' - 'A');
+        else if (ch >= 'A' && ch <= 'Z')
+            ch2 += ('a' - 'A');
+        int32_t val = context->token[context->tokenlen - len + ix];
+        if (val != ch && val != ch2)
             return 0;
     }
 
