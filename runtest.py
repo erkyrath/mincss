@@ -51,6 +51,8 @@ class Percentage(TokenBase):
     name = 'Percentage'
 class Dimension(TokenBase):
     name = 'Dimension'
+class URI(TokenBase):
+    name = 'URI'
 class LBrace(TokenBase):
     name = 'LBrace'
 class RBrace(TokenBase):
@@ -207,6 +209,11 @@ lextestlist = [
      [String(u'"x \u00E4\uFB01y"'), Space, String('"xyz"')]),
     ('"x\\E4y\\E5 z\\fb00"',
      [String(u'"x\u00e4y\u00e5z\ufb00"')]),
+
+    ('url("http://x")',
+     [URI('url("http://x")')]),
+    ('url curl urli',
+     [Ident('url'), Space, Ident('curl'), Space, Ident('urli')]),
     ]
 
 for tup in lextestlist:
