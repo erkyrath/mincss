@@ -177,6 +177,8 @@ lextestlist = [
     
     ('89% .1% .%',
      [Percentage('89%'), Space, Percentage('.1%'), Space, Delim('.'), Delim('%')]),
+    ('1.2.3% 1.2x3% 1.%',
+     [Number('1.2'), Percentage('.3%'), Space, Dimension('1.2x3'), Delim('%'), Space, Number('1'), Delim('.'), Delim('%')]),
     ('1.2pt .2x 1-e3',
      [Dimension('1.2pt'), Space, Dimension('.2x'), Space, Dimension('1-e3')]),
     ('3x3y3z 1..2x',
