@@ -214,6 +214,21 @@ lextestlist = [
      [URI('url("http://x")')]),
     ('url curl urli',
      [Ident('url'), Space, Ident('curl'), Space, Ident('urli')]),
+    ('curl("x") Url("x")',
+     [Ident('curl'), LParen, String('"x"'), RParen, Space, Ident('Url'), LParen, String('"x"'), RParen]),
+    (u'url( \'x\'\t) url("\\61:\u00E4")',
+     [URI('url( \'x\'^I)'), Space, URI(u'url("a:\u00E4")')]),
+    ('url "x"',
+     [Ident('url'), Space, String('"x"')]),
+    ('url()',
+     [Ident('url'), LParen, RParen]),
+    ('url(X) url(  Y  )',
+     [Ident('url'), LParen, Ident('X'), RParen, Space, Ident('url'), LParen, Space, Ident('Y'), Space, RParen]),
+    ('url(")',
+     [Ident('url'), LParen, String('")')],
+     ['Unterminated string', 'Unterminated string']),
+    ('url( "x" 3)',
+     [Ident('url'), LParen, Space, String('"x"'), Space, Number('3'), RParen])
     ]
 
 for tup in lextestlist:
