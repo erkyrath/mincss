@@ -525,6 +525,8 @@ static int parse_ident(mincss_context *context)
 static int parse_uri_body(mincss_context *context)
 {
     int count = 0;
+    /* Assume that "url" (case-insensitive) has already been accepted
+       into the token. */
 
     int32_t ch = next_char(context);
     if (ch == -1)
@@ -536,8 +538,6 @@ static int parse_uri_body(mincss_context *context)
         return 0;
     }
 
-    /* ### Or the other URL format, please. */
-
     while (1) {
         ch = next_char(context);
         if (ch == -1) {
@@ -547,19 +547,44 @@ static int parse_uri_body(mincss_context *context)
         count++;
         if (IS_WHITESPACE(ch))
             continue;
-        if (ch == '"' || ch == '\'') 
-            break;
+        break;
+    }
+
+    if (ch < ' ' || ch == '(' || ch == ')' || (ch > '~' && ch < 0xA0)) {
+        /* Invalid characters for a URL body. */
         putback_char(context, count);
         return 0;
     }
 
-    int len = parse_string(context, ch);
-    if (!len) {
-        putback_char(context, count);
-        return 0;
+    if (ch == '"' || ch == '\'') {
+        /* The quoted case. */
+        int len = parse_string(context, ch);
+        if (!len) {
+            putback_char(context, count);
+            return 0;
+        }
+        count += len;
     }
-    count += len;
+    else {
+        /* The unquoted case. */
+        /* ### This does not account for backslash-escapes. */
+        while (1) {
+            ch = next_char(context);
+            if (ch == -1) {
+                putback_char(context, count);
+                return 0;
+            }
+            count++;
+            if (ch < ' ' || ch == '"' || ch == '\'' || ch == '(' || ch == ')' || ch == '\\' || (ch > '~' && ch < 0xA0)) {
+                putback_char(context, 1);
+                break;
+            }
+            continue;
+        }
 
+    }
+
+    /* Chew up trailing whitespace and the close-paren. */
     while (1) {
         ch = next_char(context);
         if (ch == -1) {
@@ -574,7 +599,7 @@ static int parse_uri_body(mincss_context *context)
         putback_char(context, count);
         return 0;
     }
-
+    
     return count;    
 }
 
