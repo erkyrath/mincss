@@ -3,6 +3,13 @@
 #include <string.h>
 #include "mincss.h"
 
+/* ### CSS 2.2 (draft) has several syntax changes, not yet implemented here.
+   - The letters "URL" can be written as hex escapes
+   - The nonascii range starts at 0x80 rather than 0xA0
+   - Numbers can start with + or -, and can end with an exponent
+   - Probably other changes
+ */
+
 struct mincss_context_struct {
     int errorcount;
 
@@ -661,9 +668,9 @@ static int parse_universal_newline(mincss_context *context)
     return 0;
 }
 
-/* Parse one to six hex digits followed by a single whitespace character.
-   (In a string, a backslash followed by this is interpreted as a hex
-   escape.)
+/* Parse one to six hex digits, optionally followed by a single
+   whitespace character. (In a string, a backslash followed by this is
+   interpreted as a hex escape.)
 */
 static int parse_escaped_hex(mincss_context *context, int32_t *retval)
 {
@@ -696,9 +703,26 @@ static int parse_escaped_hex(mincss_context *context, int32_t *retval)
         res = (res << 4) + ch;
     }
 
+    if (ch == '\r' && count >= 2) {
+        /* swallow the \r, plus an \n if one follows */
+        ch = next_char(context);
+        if (ch == -1) {
+            *retval = res;
+            return count;
+        }
+        count++;
+        if (ch == '\n') {
+            *retval = res;
+            return count;
+        }
+        putback_char(context, 1);
+        count -= 1;
+        *retval = res;
+        return count;
+    }
+
     if (IS_WHITESPACE(ch) && count >= 2) {
         /* swallow it */
-        /* ### this should swallow \r\n as well */
         *retval = res;
         return count;
     }
