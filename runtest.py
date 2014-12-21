@@ -152,6 +152,10 @@ lextestlist = [
     
     ('/* */',
      [Comment('/* */')]),
+    ('/**//***/',
+     [Comment('/**/'), Comment('/***/')]),
+    ('/* \\0000 \\X */',
+     [Comment('/* \\0000 \\X */')]),
     (u'/* Whatever\uFB00. */',
      [Comment(u'/* Whatever\uFB00. */')]),
     ('/* * // */ /****/  /* /* */',
@@ -188,6 +192,8 @@ lextestlist = [
      [Ident(u'\uFB01\u0032')]),
     ('- \\02D',
      [Ident('-'), Space, Ident('-')]),
+    ('X\\0   \\0X\\0000',
+     [Ident('X^@'), Space, Ident('^@X^@')]),
     
     ('@foo @-bar @123',
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
@@ -242,6 +248,8 @@ lextestlist = [
      [String('"threefour"')]),
     (u'"x\u0020\u00E4\uFB01y" "\\x\\y\\z"',
      [String(u'"x \u00E4\uFB01y"'), Space, String('"xyz"')]),
+    ('"\\00x"',
+     [String('"^@x"')]),
     ('"x\\E4y\\E5 z\\fb00"',
      [String(u'"x\u00e4y\u00e5z\ufb00"')]),
     ('"x\\41y\\042 z\\0043\n\\44\f\\45\ry"',
