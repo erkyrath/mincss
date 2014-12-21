@@ -545,6 +545,37 @@ static int parse_ident(mincss_context *context)
         if (ch == -1) 
             return count;
         count++;
+
+        if (ch == '\\') {
+            int len = parse_universal_newline(context);
+            if (len) {
+                /* Backslashed newline: put back both, exit. */
+                putback_char(context, 1+len);
+                return count-(1+len);
+            }
+            int32_t val = '?';
+            len = parse_escaped_hex(context, &val);
+            if (len) {
+                /* Backslashed hex: drop the hex string... */
+                erase_char(context, len);
+                /* Replace the backslash itself with the named character. */
+                context->token[context->tokenlen-1] = val;
+                continue;
+            }
+            ch = next_char(context);
+            if (ch == -1) {
+                /* If there is no next character, put the backslash back
+                   and exit. */
+                putback_char(context, 1);
+                return count-1;
+            }
+            /* Any other character: take the next char literally
+               (substitute it for the backslash). */
+            erase_char(context, 1);
+            context->token[context->tokenlen-1] = ch;
+            continue;
+        }
+
         if (!(IS_IDENT_START(ch) || (ch == '-') || (ch >= '0' && ch <= '9'))) {
             putback_char(context, 1);
             return count-1;

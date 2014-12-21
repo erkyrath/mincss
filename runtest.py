@@ -164,6 +164,12 @@ lextestlist = [
      [Ident(u'f\u00E4f'), Space, Ident(u'\u016c\u13a3\u4e01\ufb00')]),
     (u'fo\u0084x  \u009F-i \u007F\u00A0\u00A0',
      [Ident('fo'), Delim(u'\u0084'), Ident('x'), Space, Delim(u'\u009F'), Ident('-i'), Space, Delim(u'\u007F'), Ident(u'\u00A0\u00A0')]),
+    ('foo\\',
+     [Ident('foo'), Delim('\\')]),
+    ('fo\\x\\ny g\\41\\42 \\43q A\\16c\\13a3\\4e01\\fb00',
+     [Ident('foxny'), Space, Ident('gABCq'), Space, Ident(u'A\u016c\u13a3\u4e01\ufb00')]),
+    ('foo\\\ny',
+     [Ident('foo'), Delim('\\'), Space, Ident('y')]),
     
     ('@foo @-bar @123',
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
