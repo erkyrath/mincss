@@ -297,15 +297,36 @@ static tokentype next_token(mincss_context *context)
         return tok_Colon;
     case ';':
         return tok_Semicolon;
+
+    /* Some cases that are more than one character, but still easy to take care of. */
+
+    case '~': {
+        ch = next_char(context);
+        if (ch == -1) 
+            return tok_Delim;
+        if (ch == '=')
+            return tok_Includes;
+        putback_char(context, 1);
+        return tok_Delim;
+    }
+
+    case '|': {
+        ch = next_char(context);
+        if (ch == -1) 
+            return tok_Delim;
+        if (ch == '=')
+            return tok_DashMatch;
+        putback_char(context, 1);
+        return tok_Delim;
+    }
+
     case '@': {
-        /* Okay this one is more than one character. */
         int len = parse_ident(context, 0);
         if (len == 0) 
             return tok_Delim;
         return tok_AtKeyword;
     }
     case '#': {
-        /* Okay this one is more than one character. */
         int len = parse_ident(context, 1);
         if (len == 1) 
             return tok_Delim;
