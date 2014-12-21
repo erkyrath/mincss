@@ -300,6 +300,13 @@ static tokentype next_token(mincss_context *context)
             return tok_Delim;
         return tok_AtKeyword;
     }
+    case '#': {
+        /* Okay this one is more than one character. */
+        int len = parse_ident(context, 1);
+        if (len == 1) 
+            return tok_Delim;
+        return tok_Hash;
+    }
     }
 
     if (IS_WHITESPACE(ch)) {
@@ -560,6 +567,8 @@ static int parse_string(mincss_context *context, int32_t delim)
    an identifier, push it back and return 0.
    If gotstart is false, the initial character must be read. If true,
    it's already accepted.
+   (This is also used to parse #hash tokens. In that case, gotstart is
+   true, but the initial character is the hash.)
 */
 static int parse_ident(mincss_context *context, int gotstart)
 {

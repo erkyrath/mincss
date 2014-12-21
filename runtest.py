@@ -192,6 +192,13 @@ lextestlist = [
     (u'@\xE5\uFB00',
      [AtKeyword(u'@\xe5\ufb00')]),
     
+    ('#foo #-bar #123',
+     [Hash('#foo'), Space, Hash('#-bar'), Space, Hash('#123')]),
+    ('#a #\\42 \\43',
+     [Hash('#a'), Space, Hash('#BC')]),
+    ('#. #\\2E  ## ##X',
+     [Delim('#'), Delim('.'), Space, Hash('#.'), Space, Delim('#'), Delim('#'), Space, Delim('#'), Hash('#X')]),
+    
     ('1234',
      [Number('1234')]),
     ('12!34/**/',
