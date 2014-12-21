@@ -366,6 +366,12 @@ static tokentype next_token(mincss_context *context)
             if (sublen > 0)
                 return tok_URI;
         }
+        ch = next_char(context);
+        if (ch == -1) 
+            return tok_Ident;
+        if (ch == '(')
+            return tok_Function;
+        putback_char(context, 1);
         return tok_Ident;
     }
 
