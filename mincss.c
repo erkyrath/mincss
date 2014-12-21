@@ -48,15 +48,17 @@ typedef enum tokentype_enum {
     tok_AtKeyword = 7,
     tok_Percentage = 8,
     tok_Dimension = 9,
-    tok_URI = 10,
-    tok_LBrace = 11,
-    tok_RBrace = 12,
-    tok_LBracket = 13,
-    tok_RBracket = 14,
-    tok_LParen = 15,
-    tok_RParen = 16,
-    tok_Colon = 17,
-    tok_Semicolon = 18,
+    tok_Function = 10,
+    tok_Hash = 11,
+    tok_URI = 12,
+    tok_LBrace = 13,
+    tok_RBrace = 14,
+    tok_LBracket = 15,
+    tok_RBracket = 16,
+    tok_LParen = 17,
+    tok_RParen = 18,
+    tok_Colon = 19,
+    tok_Semicolon = 20,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -230,6 +232,8 @@ static char *token_name(tokentype tok)
     case tok_AtKeyword: return "AtKeyword";
     case tok_Percentage: return "Percentage";
     case tok_Dimension: return "Dimension";
+    case tok_Function: return "Function";
+    case tok_Hash: return "Hash";
     case tok_URI: return "URI";
     case tok_LBrace: return "LBrace";
     case tok_RBrace: return "RBrace";

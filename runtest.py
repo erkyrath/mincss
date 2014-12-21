@@ -51,6 +51,10 @@ class Percentage(TokenBase):
     name = 'Percentage'
 class Dimension(TokenBase):
     name = 'Dimension'
+class Function(TokenBase):
+    name = 'Function'
+class Hash(TokenBase):
+    name = 'Hash'
 class URI(TokenBase):
     name = 'URI'
 class LBrace(TokenBase):
