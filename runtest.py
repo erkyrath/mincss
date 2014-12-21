@@ -143,6 +143,8 @@ lextestlist = [
     
     ('()[]{};:!@#$%',
      [LParen, RParen, LBracket, RBracket, LBrace, RBrace, Semicolon, Colon, Delim('!'), Delim('@'), Delim('#'), Delim('$'), Delim('%')]),
+    ('( ) [ ] { } ; : ! @ # $ %',
+     [LParen, Space, RParen, Space, LBracket, Space, RBracket, Space, LBrace, Space, RBrace, Space, Semicolon, Space, Colon, Space, Delim('!'), Space, Delim('@'), Space, Delim('#'), Space, Delim('$'), Space, Delim('%')]),
     ('\\',
      [Delim('\\')]),
     ('\\\n',
