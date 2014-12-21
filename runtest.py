@@ -77,6 +77,10 @@ class Includes(TokenBase):
     name = 'Includes'
 class DashMatch(TokenBase):
     name = 'DashMatch'
+class CDO(TokenBase):
+    name = 'CDO'
+class CDC(TokenBase):
+    name = 'CDC'
 
 errorcount = 0
 
@@ -185,6 +189,19 @@ lextestlist = [
     ('/* *',
      [Comment('/* *')],
      ['Unterminated comment']),
+    
+    ('<!--',
+     [CDO]),
+    ('<!-',
+     [Delim('<'), Delim('!'), Ident('-')]),
+    ('<!',
+     [Delim('<'), Delim('!')]),
+    ('<',
+     [Delim('<')]),
+    ('<<!--',
+     [Delim('<'), CDO]),
+    ('<!--X <!-X <!X <X <!---X',
+     [CDO, Ident('X'), Space, Delim('<'), Delim('!'), Ident('-X'), Space, Delim('<'), Delim('!'), Ident('X'), Space, Delim('<'), Ident('X'), Space, CDO, Ident('-X')]),
     
     ('foo',
      [Ident('foo')]),

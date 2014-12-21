@@ -61,6 +61,8 @@ typedef enum tokentype_enum {
     tok_Semicolon = 20,
     tok_Includes = 21,
     tok_DashMatch = 22,
+    tok_CDO = 23,
+    tok_CDC = 24,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -247,6 +249,8 @@ static char *token_name(tokentype tok)
     case tok_Semicolon: return "Semicolon";
     case tok_Includes: return "Includes";
     case tok_DashMatch: return "DashMatch";
+    case tok_CDO: return "CDO";
+    case tok_CDC: return "CDC";
     default: return "???";
     }
 }
@@ -326,11 +330,42 @@ static tokentype next_token(mincss_context *context)
             return tok_Delim;
         return tok_AtKeyword;
     }
+
     case '#': {
         int len = parse_ident(context, 1);
         if (len == 1) 
             return tok_Delim;
         return tok_Hash;
+    }
+
+    /* Not proud of this next one. */
+    case '<': {
+        ch = next_char(context);
+        if (ch == -1) 
+            return tok_Delim;
+        if (ch == '!') {
+            ch = next_char(context);
+            if (ch == -1) {
+                putback_char(context, 1);
+                return tok_Delim;
+            }
+            if (ch == '-') {
+                ch = next_char(context);
+                if (ch == -1) {
+                    putback_char(context, 2);
+                    return tok_Delim;
+                }
+                if (ch == '-') {
+                    return tok_CDO;
+                }
+                putback_char(context, 3);
+                return tok_Delim;
+            }
+            putback_char(context, 2);
+            return tok_Delim;
+        }
+        putback_char(context, 1);
+        return tok_Delim;
     }
     }
 
