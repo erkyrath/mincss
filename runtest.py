@@ -180,6 +180,8 @@ lextestlist = [
      [Ident('Azoo'), Space, Ident('BCx'), Space, Ident('/+')]),
     ('\\00FB012',
      [Ident(u'\uFB01\u0032')]),
+    ('- \\02D',
+     [Ident('-'), Space, Ident('-')]),
     
     ('@foo @-bar @123',
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),

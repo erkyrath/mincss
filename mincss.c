@@ -332,8 +332,7 @@ static tokentype next_token(mincss_context *context)
         if (ch == '%')
             return tok_Percentage;
         if (ch == '-' || IS_IDENT_START(ch)) {
-            putback_char(context, 1);
-            int len = parse_ident(context, 0);
+            int len = parse_ident(context, 1);
             if (len > 0)
                 return tok_Dimension;
             else
@@ -346,8 +345,7 @@ static tokentype next_token(mincss_context *context)
     if (ch == '-' || IS_IDENT_START(ch)) {
         /* Ordinary identifiers. Note that minus signs always indicate
            identifiers, not numbers. (At least in CSS 2.1.) */
-        putback_char(context, 1);
-        int len = parse_ident(context, 0);
+        int len = parse_ident(context, 1);
         if (len == 0) {
             ch = next_char(context);
             return tok_Delim;
