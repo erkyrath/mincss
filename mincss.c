@@ -366,6 +366,7 @@ static tokentype next_token(mincss_context *context)
             if (sublen > 0)
                 return tok_URI;
         }
+        /* If the following character is a left-paren, this is a function. */
         ch = next_char(context);
         if (ch == -1) 
             return tok_Ident;
@@ -418,6 +419,13 @@ static tokentype next_token(mincss_context *context)
             context->token[context->tokenlen-1] = val;
             /* Parse the rest of the identifier. */
             parse_ident(context, 1);
+            /* If the following character is a left-paren, this is a function. */
+            ch = next_char(context);
+            if (ch == -1) 
+                return tok_Ident;
+            if (ch == '(')
+                return tok_Function;
+            putback_char(context, 1);
             return tok_Ident;
         }
         ch = next_char(context);
@@ -432,6 +440,13 @@ static tokentype next_token(mincss_context *context)
         context->token[context->tokenlen-1] = ch;
         /* Parse the rest of the identifier. */
         parse_ident(context, 1);
+        /* If the following character is a left-paren, this is a function. */
+        ch = next_char(context);
+        if (ch == -1) 
+            return tok_Ident;
+        if (ch == '(')
+            return tok_Function;
+        putback_char(context, 1);
         return tok_Ident;
     }
 

@@ -258,10 +258,16 @@ lextestlist = [
 
     ('Foo()',
      [Function('Foo('), RParen]),
-    ('Foo.( Bar\\2E(',
-     [Ident('Foo'), Delim('.'), LParen, Space, Function('Bar.(')]),
+    ('.( Foo.( Bar\\2E(',
+     [Delim('.'), LParen, Space, Ident('Foo'), Delim('.'), LParen, Space, Function('Bar.(')]),
     ('A\\42\\043\\X(',
      [Function('ABCX(')]),
+    ('\\42\\043\\X( \\Y(',
+     [Function('BCX('), Space, Function('Y(')]),
+    ('A\\( B\\((',
+     [Ident('A('), Space, Function('B((')]),
+    ('func(5) \!bar("xy")',
+     [Function('func('), Number('5'), RParen, Space, Function('!bar('), String('"xy"'), RParen]),
     
     ('url("http://x") url(http://x/y)',
      [URI('url("http://x")'), Space, URI('url(http://x/y)')]),
