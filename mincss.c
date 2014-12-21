@@ -59,6 +59,8 @@ typedef enum tokentype_enum {
     tok_RParen = 18,
     tok_Colon = 19,
     tok_Semicolon = 20,
+    tok_Includes = 21,
+    tok_DashMatch = 22,
 } tokentype;
 
 static void perform_parse(mincss_context *context);
@@ -243,6 +245,8 @@ static char *token_name(tokentype tok)
     case tok_RParen: return "RParen";
     case tok_Colon: return "Colon";
     case tok_Semicolon: return "Semicolon";
+    case tok_Includes: return "Includes";
+    case tok_DashMatch: return "DashMatch";
     default: return "???";
     }
 }

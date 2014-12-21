@@ -73,6 +73,10 @@ class Colon(TokenBase):
     name = 'Colon'
 class Semicolon(TokenBase):
     name = 'Semicolon'
+class Includes(TokenBase):
+    name = 'Includes'
+class DashMatch(TokenBase):
+    name = 'DashMatch'
 
 errorcount = 0
 
