@@ -415,7 +415,29 @@ static tokentype next_token(mincss_context *context)
 
     if (ch == '-' || IS_IDENT_START(ch)) {
         /* Ordinary identifiers. Note that minus signs always indicate
-           identifiers, not numbers. (At least in CSS 2.1.) */
+           identifiers, not numbers. (At least in CSS 2.1.) (Except
+           that it might be a CDC --> token.) */
+
+        ch = next_char(context);
+        if (ch == -1) {
+            /* Do nothing */
+        }
+        else if (ch == '-') {
+            ch = next_char(context);
+            if (ch == -1) {
+                putback_char(context, 1);
+            }
+            else if (ch == '>') {
+                return tok_CDC;
+            }
+            else {
+                putback_char(context, 2);
+            }
+        }
+        else {
+            putback_char(context, 1);
+        }
+
         int len = parse_ident(context, 1);
         if (len == 0) {
             ch = next_char(context);
