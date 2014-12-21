@@ -148,6 +148,8 @@ lextestlist = [
      [Comment('/* * // */'), Space, Comment('/****/'), Space, Comment('/* /* */')]),
     ('/* \n */',
      [Comment('/* ^J */')]),
+    ('/* \\ */ /* \\n */',
+     [Comment('/* \\ */'), Space, Comment('/* \\n */')]),
     ('/* *',
      [Comment('/* *')],
      ['Unterminated comment']),
