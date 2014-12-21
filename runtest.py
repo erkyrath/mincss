@@ -165,6 +165,8 @@ lextestlist = [
      [DashMatch]),
     ('||== | |X |)',
      [Delim('|'), DashMatch, Delim('='), Space, Delim('|'), Space, Delim('|'), Ident('X'), Space, Delim('|'), RParen]),
+    ('|51 |="foo" ~\\41',
+     [Delim('|'), Number('51'), Space, DashMatch, String('"foo"'), Space, Delim('~'), Ident('A')]),
     
     ('/* */',
      [Comment('/* */')]),
