@@ -68,7 +68,7 @@ static tokentype next_token(mincss_context *context);
 
 static int parse_number(mincss_context *context);
 static int parse_string(mincss_context *context, int32_t delim);
-static int parse_ident(mincss_context *context);
+static int parse_ident(mincss_context *context, int gotstart);
 static int parse_uri_body(mincss_context *context);
 static int parse_universal_newline(mincss_context *context);
 static int parse_escaped_hex(mincss_context *context, int32_t *val);
@@ -291,7 +291,7 @@ static tokentype next_token(mincss_context *context)
         return tok_Semicolon;
     case '@': {
         /* Okay this one is more than one character. */
-        int len = parse_ident(context);
+        int len = parse_ident(context, 0);
         if (len == 0) 
             return tok_Delim;
         return tok_AtKeyword;
@@ -312,11 +312,14 @@ static tokentype next_token(mincss_context *context)
     }
 
     if (ch == '"' || ch == '\'') {
+        /* Strings begin with a single or double quote. */
         parse_string(context, ch);
         return tok_String;
     }
 
     if (IS_NUMBER_START(ch)) {
+        /* Digits could begin a number, percentage, or dimension, depending
+           on what's after them. */
         putback_char(context, 1);
         int numlen = parse_number(context);
         if (numlen == 0) {
@@ -330,7 +333,7 @@ static tokentype next_token(mincss_context *context)
             return tok_Percentage;
         if (ch == '-' || IS_IDENT_START(ch)) {
             putback_char(context, 1);
-            int len = parse_ident(context);
+            int len = parse_ident(context, 0);
             if (len > 0)
                 return tok_Dimension;
             else
@@ -341,8 +344,10 @@ static tokentype next_token(mincss_context *context)
     }
 
     if (ch == '-' || IS_IDENT_START(ch)) {
+        /* Ordinary identifiers. Note that minus signs always indicate
+           identifiers, not numbers. (At least in CSS 2.1.) */
         putback_char(context, 1);
-        int len = parse_ident(context);
+        int len = parse_ident(context, 0);
         if (len == 0) {
             ch = next_char(context);
             return tok_Delim;
@@ -374,6 +379,45 @@ static tokentype next_token(mincss_context *context)
                 return tok_Comment;
             gotstar = (ch == '*');
         }
+    }
+
+    if (ch == '\\') {
+        /* A backslash which forms a hex escape is the start of an
+           identifier. (Even if it's not a normal identifier-start
+           character.) A backslashed nonwhite character starts an
+           identifer as itself. A backslash before whitespace is
+           a delimiter. */
+        int len = parse_universal_newline(context);
+        if (len) {
+            /* Backslashed newline: put back the newline, accept the
+               backslash. */
+            putback_char(context, len);
+            return tok_Delim;
+        }
+        int32_t val = '?';
+        len = parse_escaped_hex(context, &val);
+        if (len) {
+            /* Backslashed hex: drop the hex string... */
+            erase_char(context, len);
+            /* Replace the backslash itself with the named character. */
+            context->token[context->tokenlen-1] = val;
+            /* Parse the rest of the identifier. */
+            parse_ident(context, 1);
+            return tok_Ident;
+        }
+        ch = next_char(context);
+        if (ch == -1) {
+            /* If there is no next character, take the backslash as a
+               delimiter. */
+            return tok_Delim;
+        }
+        /* Any other character: take the next char literally
+           (substitute it for the backslash). */
+        erase_char(context, 1);
+        context->token[context->tokenlen-1] = ch;
+        /* Parse the rest of the identifier. */
+        parse_ident(context, 1);
+        return tok_Ident;
     }
 
     /* Anything not captured above is a one-character Delim token. */
@@ -512,32 +556,40 @@ static int parse_string(mincss_context *context, int32_t delim)
 /* Parse an identifier.
    Return the number of characters parsed. If the incoming text is not
    an identifier, push it back and return 0.
+   If gotstart is false, the initial character must be read. If true,
+   it's already accepted.
 */
-static int parse_ident(mincss_context *context)
+static int parse_ident(mincss_context *context, int gotstart)
 {
     int count = 0;
+    int32_t ch = 0;
 
-    int32_t ch = next_char(context);
-    if (ch == -1)
-        return 0;
-    count++;
-
-    if (ch == '-') {
+    if (!gotstart) {
         ch = next_char(context);
-        if (ch == -1) {
+        if (ch == -1)
+            return 0;
+        count++;
+
+        if (ch == '-') {
+            ch = next_char(context);
+            if (ch == -1) {
+                putback_char(context, count);
+                return 0;
+            }
+            count++;
+        }
+        
+        /* Note that Unicode characters from 0xA0 on can *all* be used in
+           identifiers. IS_IDENT_START includes these. */
+        /* ### This does not account for backslash-escapes. */
+        
+        if (!IS_IDENT_START(ch)) {
             putback_char(context, count);
             return 0;
         }
-        count++;
     }
-
-    /* Note that Unicode characters from 0xA0 on can *all* be used in
-       identifiers. IS_IDENT_START includes these. */
-    /* ### This does not account for backslash-escapes. */
-
-    if (!IS_IDENT_START(ch)) {
-        putback_char(context, count);
-        return 0;
+    else {
+        count = 1;
     }
 
     while (1) {

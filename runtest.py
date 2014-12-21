@@ -139,6 +139,10 @@ lextestlist = [
     
     ('()[]{};:!@#$%',
      [LParen, RParen, LBracket, RBracket, LBrace, RBrace, Semicolon, Colon, Delim('!'), Delim('@'), Delim('#'), Delim('$'), Delim('%')]),
+    ('\\',
+     [Delim('\\')]),
+    ('\\\n',
+     [Delim('\\'), Space('^J')]),
     
     ('/* */',
      [Comment('/* */')]),
@@ -172,6 +176,10 @@ lextestlist = [
      [Ident('foo'), Delim('\\'), Space, Ident('y')]),
     ('fn\\6F\\70 \\002F-\\!x X\\\\',
      [Ident('fnop/-!x'), Space, Ident('X\\')]),
+    ('\\41zoo \\42\\043 x \\/\\+',
+     [Ident('Azoo'), Space, Ident('BCx'), Space, Ident('/+')]),
+    ('\\00FB012',
+     [Ident(u'\uFB01\u0032')]),
     
     ('@foo @-bar @123',
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
