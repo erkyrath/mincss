@@ -405,7 +405,8 @@ static tokentype next_token(mincss_context *context)
         if (ch == '%')
             return tok_Percentage;
         if (ch == '-' || IS_IDENT_START(ch)) {
-            int len = parse_ident(context, 1);
+            putback_char(context, 1);
+            int len = parse_ident(context, 0);
             if (len > 0)
                 return tok_Dimension;
             else
@@ -440,7 +441,8 @@ static tokentype next_token(mincss_context *context)
             putback_char(context, 1);
         }
 
-        int len = parse_ident(context, 1);
+        putback_char(context, 1);
+        int len = parse_ident(context, 0);
         if (len == 0) {
             ch = next_char(context);
             return tok_Delim;
