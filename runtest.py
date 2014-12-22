@@ -245,8 +245,12 @@ lextestlist = [
     
     ('@foo @-bar @123',
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
+    ('@- @-- @',
+     [Delim('@'), Ident('-'), Space, Delim('@'), Ident('--'), Space, Delim('@')]),
     (u'@\xE5\uFB00',
      [AtKeyword(u'@\xe5\ufb00')]),
+    ('@\\xyzz\\y @\\41-\\43',
+     [AtKeyword('@xyzzy'), Space, AtKeyword('@A-C')]),
     
     ('#foo #-bar #123',
      [Hash('#foo'), Space, Hash('#-bar'), Space, Hash('#123')]),

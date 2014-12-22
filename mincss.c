@@ -10,6 +10,8 @@
    - Probably other changes
  */
 
+/* ### generates Ident('-') and Ident('--'), which are not legal. But Hash('#-') is legal. */
+
 struct mincss_context_struct {
     int errorcount;
 
@@ -684,6 +686,8 @@ static int parse_ident(mincss_context *context, int gotstart)
             return 0;
         count++;
 
+        /* We can start with a minus, but only if the following character
+           is a legit ident-start character *or* an escape. */
         if (ch == '-') {
             ch = next_char(context);
             if (ch == -1) {
@@ -693,13 +697,42 @@ static int parse_ident(mincss_context *context, int gotstart)
             count++;
         }
         
-        /* Note that Unicode characters from 0xA0 on can *all* be used in
-           identifiers. IS_IDENT_START includes these. */
-        /* ### This does not account for backslash-escapes. */
-        
-        if (!IS_IDENT_START(ch)) {
-            putback_char(context, count);
-            return 0;
+        if (ch == '\\') {
+            int len = parse_universal_newline(context);
+            if (len) {
+                /* Backslashed newline: put back both, exit. */
+                putback_char(context, 1+len);
+                return count-(1+len);
+            }
+            int32_t val = '?';
+            len = parse_escaped_hex(context, &val);
+            if (len) {
+                /* Backslashed hex: drop the hex string... */
+                erase_char(context, len);
+                /* Replace the backslash itself with the named character. */
+                context->token[context->tokenlen-1] = val;
+            }
+            else {
+                ch = next_char(context);
+                if (ch == -1) {
+                    /* If there is no next character, put the backslash back
+                       and exit. */
+                    putback_char(context, 1);
+                    return count-1;
+                }
+                /* Any other character: take the next char literally
+                   (substitute it for the backslash). */
+                erase_char(context, 1);
+                context->token[context->tokenlen-1] = ch;
+            }
+        }
+        else {
+            /* Note that Unicode characters from 0xA0 on can *all* be used in
+               identifiers. IS_IDENT_START includes these. */
+            if (!IS_IDENT_START(ch)) {
+                putback_char(context, count);
+                return 0;
+            }
         }
     }
     else {
