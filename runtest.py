@@ -258,8 +258,8 @@ lextestlist = [
     
     ('#foo #-bar #123',
      [Hash('#foo'), Space, Hash('#-bar'), Space, Hash('#123')]),
-    ('#--- #\\2Dx #\\xyz',
-     [Hash('#---'), Space, Hash('#-x'), Space, Hash('#xyz')]),
+    ('#- #--- #\\2Dx #\\xyz',
+     [Hash('#-'), Space, Hash('#---'), Space, Hash('#-x'), Space, Hash('#xyz')]),
     ('#a #\\42 \\43',
      [Hash('#a'), Space, Hash('#BC')]),
     ('#. #A. #\\2E  ## ##X',

@@ -10,8 +10,6 @@
    - Probably other changes
  */
 
-/* ### generates Ident('-') and Ident('--'), which are not legal. But Hash('#-') is legal. */
-
 struct mincss_context_struct {
     int errorcount;
 
