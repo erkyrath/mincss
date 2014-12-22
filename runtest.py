@@ -240,6 +240,8 @@ lextestlist = [
      [Ident(u'\uFB01\u0032')]),
     ('- \\02D',
      [Delim('-'), Space, Ident('-')]),
+    ('-- -\\02D -9 -\\02D   -9',
+     [Delim('-'), Delim('-'), Space, Ident('---9'), Space, Ident('--'), Space, Delim('-'), Number('9')]),
     ('X\\0   \\0X\\0000',
      [Ident('X^@'), Space, Ident('^@X^@')]),
     
@@ -247,7 +249,8 @@ lextestlist = [
      [AtKeyword('@foo'), Space, AtKeyword('@-bar'), Space, Delim('@'), Number('123')]),
     ('@- @-- @',
      [Delim('@'), Delim('-'), Space, Delim('@'), Delim('-'), Delim('-'), Space, Delim('@')]),
-    ### @-9
+    ('@-9 @\\2Dx @-\\2Dy',
+     [Delim('@'), Delim('-'), Number('9'), Space, AtKeyword('@-x'), Space, AtKeyword('@--y')]),
     (u'@\xE5\uFB00',
      [AtKeyword(u'@\xe5\ufb00')]),
     ('@\\xyzz\\y @\\41-\\43',
@@ -255,6 +258,8 @@ lextestlist = [
     
     ('#foo #-bar #123',
      [Hash('#foo'), Space, Hash('#-bar'), Space, Hash('#123')]),
+    ('#--- #\\2Dx #\\xyz',
+     [Hash('#---'), Space, Hash('#-x'), Space, Hash('#xyz')]),
     ('#a #\\42 \\43',
      [Hash('#a'), Space, Hash('#BC')]),
     ('#. #A. #\\2E  ## ##X',
