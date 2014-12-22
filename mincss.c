@@ -813,7 +813,7 @@ static int parse_uri_body(mincss_context *context)
         break;
     }
 
-    if (ch < ' ' || ch == '(' || ch == ')' || (ch > '~' && ch < 0xA0)) {
+    if (ch < ' ' || ch == '(' || ch == ')' || (ch > '~' && ch < 0xA0 && ch != '\\')) {
         /* Invalid characters for a URL body. */
         putback_char(context, count);
         return 0;
@@ -829,8 +829,9 @@ static int parse_uri_body(mincss_context *context)
         count += len;
     }
     else {
-        /* The unquoted case. */
-        /* ### This does not account for backslash-escapes. */
+        /* The unquoted case. We put back the initial char in case it was a backslash. */
+        putback_char(context, 1);
+        count -= 1;
         while (1) {
             ch = next_char(context);
             if (ch == -1) {
@@ -838,6 +839,34 @@ static int parse_uri_body(mincss_context *context)
                 return 0;
             }
             count++;
+            if (ch == '\\') {
+                int len = parse_universal_newline(context);
+                if (len) {
+                    /* Backslashed newline: drop it. */
+                    erase_char(context, len+1);
+                    count -= 1;
+                    continue;
+                }
+                int32_t val = '?';
+                len = parse_escaped_hex(context, &val);
+                if (len) {
+                    /* Backslashed hex: drop the hex string... */
+                    erase_char(context, len);
+                    /* Replace the backslash itself with the named character. */
+                    context->token[context->tokenlen-1] = val;
+                    continue;
+                }
+                /* Any other character: take the next char literally
+                   (substitute it for the backslash). */
+                ch = next_char(context);
+                if (ch == -1) {
+                    note_error(context, "Unterminated URI (ends with backslash)");
+                    return count;
+                }
+                erase_char(context, 1);
+                context->token[context->tokenlen-1] = ch;
+                continue;
+            }
             if (ch < ' ' || ch == '"' || ch == '\'' || ch == '(' || ch == ')' || ch == '\\' || (ch > '~' && ch < 0xA0)) {
                 putback_char(context, 1);
                 count -= 1;

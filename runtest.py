@@ -370,6 +370,8 @@ lextestlist = [
      [Function('url('), Ident('x'), String('"y"'), RParen]),
     (u'url(\u00A0) url(\u009F)',
      [URI(u'url(\u00A0)'), Space, Function('url('), Delim(u'\u009F'), RParen]),
+    ('url(\\0041\\42) url(\\xyzz\\y)',
+     [URI('url(AB)'), Space, URI('url(xyzzy)')]),
     ]
 
 for tup in lextestlist:
