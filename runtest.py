@@ -239,7 +239,7 @@ lextestlist = [
     ('\\00FB012',
      [Ident(u'\uFB01\u0032')]),
     ('- \\02D',
-     [Delim('-'), Space, Delim('-')]),
+     [Delim('-'), Space, Ident('-')]),
     ('X\\0   \\0X\\0000',
      [Ident('X^@'), Space, Ident('^@X^@')]),
     
