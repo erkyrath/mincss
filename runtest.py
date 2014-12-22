@@ -336,6 +336,8 @@ lextestlist = [
      [Ident('A('), Space, Function('B((')]),
     ('func(5) \!bar("xy")',
      [Function('func('), Number('5'), RParen, Space, Function('!bar('), String('"xy"'), RParen]),
+    ('--x( -\\2Dx(',
+     [Delim('-'), Function('-x('), Space, Function('--x(')]),
     
     ('url("http://x") url(http://x/y)',
      [URI('url("http://x")'), Space, URI('url(http://x/y)')]),
