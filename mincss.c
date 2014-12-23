@@ -105,7 +105,7 @@ static void perform_parse(mincss_context *context)
         }
     }
     else {
-        /* ### real parsing */
+        mincss_read(context);
     }
 
     free(context->token);

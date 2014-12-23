@@ -53,6 +53,12 @@ typedef enum tokentype_enum {
     tok_CDC = 24,
 } tokentype;
 
+/* mincss.c */
 extern void mincss_note_error(mincss_context *context, char *msg);
+
+/* csslex.c */
 extern tokentype mincss_next_token(mincss_context *context);
 extern char *mincss_token_name(tokentype tok);
+
+/* cssread.c */
+extern void mincss_read(mincss_context *context);

@@ -1,5 +1,5 @@
 
-OBJS = mincss.o csslex.o
+OBJS = mincss.o csslex.o cssread.o
 CFLAGS = -Wall
 
 test: $(OBJS) test.o
