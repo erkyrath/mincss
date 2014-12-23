@@ -82,7 +82,7 @@ static void perform_parse(mincss_context *context)
     context->token = (int32_t *)malloc(context->tokenbufsize * sizeof(int32_t));
 
     if (!context->token) {
-        note_error(context, "(Internal) Unable to allocate buffer memory");
+        mincss_note_error(context, "(Internal) Unable to allocate buffer memory");
         return;
     }
 
@@ -90,10 +90,10 @@ static void perform_parse(mincss_context *context)
         /* Just read tokens and print them until the stream is done. */
         while (1) {
             int ix;
-            tokentype toktype = next_token(context);
+            tokentype toktype = mincss_next_token(context);
             if (toktype == tok_EOF)
                 break;
-            printf("<%s> \"", token_name(toktype));
+            printf("<%s> \"", mincss_token_name(toktype));
             for (ix=0; ix<context->tokenlen; ix++) {
                 int32_t ch = context->token[ix];
                 if (ch < 32)
@@ -144,7 +144,7 @@ static void putchar_utf8(int32_t val, FILE *fl)
     }
 }
 
-void note_error(mincss_context *context, char *msg)
+void mincss_note_error(mincss_context *context, char *msg)
 {
     context->errorcount += 1;
 

@@ -16,7 +16,7 @@ static void putback_char(mincss_context *context, int count);
 static void erase_char(mincss_context *context, int count);
 static int match_accepted_chars(mincss_context *context, char *str);
 
-char *token_name(tokentype tok)
+char *mincss_token_name(tokentype tok)
 {
     switch (tok) {
     case tok_EOF: return "EOF";
@@ -58,7 +58,7 @@ char *token_name(tokentype tok)
 /* Grab the next token. Returns the tokentype. The token's text is available
    at context->token, length context->tokenlen.
 */
-tokentype next_token(mincss_context *context)
+tokentype mincss_next_token(mincss_context *context)
 {
     /* Discard all text in the buffer from the previous token. But if
        any characters were pushed back, keep those. */
@@ -265,7 +265,7 @@ tokentype next_token(mincss_context *context)
         while (1) {
             ch = next_char(context);
             if (ch == -1) {
-                note_error(context, "Unterminated comment");
+                mincss_note_error(context, "Unterminated comment");
                 return tok_Comment;
             }
             if (ch == '/' && gotstar)
@@ -414,7 +414,7 @@ static int parse_string(mincss_context *context, int32_t delim)
     while (1) {
         int32_t ch = next_char(context);
         if (ch == -1) {
-            note_error(context, "Unterminated string");
+            mincss_note_error(context, "Unterminated string");
             return count;
         }
         count++;
@@ -443,7 +443,7 @@ static int parse_string(mincss_context *context, int32_t delim)
                (substitute it for the backslash). */
             ch = next_char(context);
             if (ch == -1) {
-                note_error(context, "Unterminated string (ends with backslash)");
+                mincss_note_error(context, "Unterminated string (ends with backslash)");
                 return count;
             }
             erase_char(context, 1);
@@ -454,7 +454,7 @@ static int parse_string(mincss_context *context, int32_t delim)
         /* If a string runs into an unescaped newline, we report an error
            and pretend the string ended. */
         if (ch == '\n' || ch == '\r' || ch == '\f') {
-            note_error(context, "Unterminated string");
+            mincss_note_error(context, "Unterminated string");
             return count;
         }
     }
@@ -653,7 +653,7 @@ static int parse_uri_body(mincss_context *context)
                    (substitute it for the backslash). */
                 ch = next_char(context);
                 if (ch == -1) {
-                    note_error(context, "Unterminated URI (ends with backslash)");
+                    mincss_note_error(context, "Unterminated URI (ends with backslash)");
                     return count;
                 }
                 erase_char(context, 1);
@@ -815,7 +815,7 @@ static int32_t next_char(mincss_context *context)
         context->tokenbufsize = 2*context->tokenlen + 16;
         context->token = (int32_t *)realloc(context->token, context->tokenbufsize * sizeof(int32_t));
         if (!context->token) {
-            note_error(context, "(Internal) Unable to reallocate buffer memory");
+            mincss_note_error(context, "(Internal) Unable to reallocate buffer memory");
             return -1;
         }
     }
@@ -831,11 +831,11 @@ static int32_t next_char(mincss_context *context)
         else if ((byte0 & 0xE0) == 0xC0) {
             int32_t byte1 = (context->parse_byte)(context->parserock);
             if (byte1 < 0) {
-                note_error(context, "(UTF8) Incomplete two-byte character");
+                mincss_note_error(context, "(UTF8) Incomplete two-byte character");
                 ch = byte0;
             }
             else if ((byte1 & 0xC0) != 0x80) {
-                note_error(context, "(UTF8) Malformed two-byte character");
+                mincss_note_error(context, "(UTF8) Malformed two-byte character");
                 ch = byte0;
             }
             else {
@@ -846,21 +846,21 @@ static int32_t next_char(mincss_context *context)
         else if ((byte0 & 0xF0) == 0xE0) {
             int32_t byte1 = (context->parse_byte)(context->parserock);
             if (byte1 < 0) {
-                note_error(context, "(UTF8) Incomplete three-byte character");
+                mincss_note_error(context, "(UTF8) Incomplete three-byte character");
                 ch = byte0;
             }
             else if ((byte1 & 0xC0) != 0x80) {
-                note_error(context, "(UTF8) Malformed three-byte character");
+                mincss_note_error(context, "(UTF8) Malformed three-byte character");
                 ch = byte0;
             }
             else {
                 int32_t byte2 = (context->parse_byte)(context->parserock);
                 if (byte2 < 0) {
-                    note_error(context, "(UTF8) Incomplete three-byte character");
+                    mincss_note_error(context, "(UTF8) Incomplete three-byte character");
                     ch = byte0;
                 }
                 else if ((byte2 & 0xC0) != 0x80) {
-                    note_error(context, "(UTF8) Malformed three-byte character");
+                    mincss_note_error(context, "(UTF8) Malformed three-byte character");
                     ch = byte0;
                 }
                 else {
@@ -873,31 +873,31 @@ static int32_t next_char(mincss_context *context)
         else if ((byte0 & 0xF0) == 0xF0) {
             int32_t byte1 = (context->parse_byte)(context->parserock);
             if (byte1 < 0) {
-                note_error(context, "(UTF8) Incomplete four-byte character");
+                mincss_note_error(context, "(UTF8) Incomplete four-byte character");
                 ch = byte0;
             }
             else if ((byte1 & 0xC0) != 0x80) {
-                note_error(context, "(UTF8) Malformed four-byte character");
+                mincss_note_error(context, "(UTF8) Malformed four-byte character");
                 ch = byte0;
             }
             else {
                 int32_t byte2 = (context->parse_byte)(context->parserock);
                 if (byte2 < 0) {
-                    note_error(context, "(UTF8) Incomplete four-byte character");
+                    mincss_note_error(context, "(UTF8) Incomplete four-byte character");
                     ch = byte0;
                 }
                 else if ((byte2 & 0xC0) != 0x80) {
-                    note_error(context, "(UTF8) Malformed four-byte character");
+                    mincss_note_error(context, "(UTF8) Malformed four-byte character");
                     ch = byte0;
                 }
                 else {
                     int32_t byte3 = (context->parse_byte)(context->parserock);
                     if (byte3 < 0) {
-                        note_error(context, "(UTF8) Incomplete four-byte character");
+                        mincss_note_error(context, "(UTF8) Incomplete four-byte character");
                         ch = byte0;
                     }
                     else if ((byte3 & 0xC0) != 0x80) {
-                        note_error(context, "(UTF8) Malformed four-byte character");
+                        mincss_note_error(context, "(UTF8) Malformed four-byte character");
                         ch = byte0;
                     }
                     else {
@@ -910,7 +910,7 @@ static int32_t next_char(mincss_context *context)
             }
         }
         else {
-            note_error(context, "(UTF8) Malformed character");
+            mincss_note_error(context, "(UTF8) Malformed character");
             ch = '?';
         }
     }
@@ -932,7 +932,7 @@ static int32_t next_char(mincss_context *context)
 static void putback_char(mincss_context *context, int count)
 {
     if (count > context->tokenlen) {
-        note_error(context, "(Internal) Put back too many characters");
+        mincss_note_error(context, "(Internal) Put back too many characters");
         context->tokenlen = 0;
         return;
     }
@@ -947,7 +947,7 @@ static void putback_char(mincss_context *context, int count)
 static void erase_char(mincss_context *context, int count)
 {
     if (count > context->tokenlen) {
-        note_error(context, "(Internal) Erase too many characters");
+        mincss_note_error(context, "(Internal) Erase too many characters");
         return;
     }
 
