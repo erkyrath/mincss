@@ -13,8 +13,6 @@
 
 static void perform_parse(mincss_context *context);
 
-static void putchar_utf8(int32_t val, FILE *fl);
-
 mincss_context *mincss_init()
 {
     mincss_context *context = (mincss_context *)malloc(sizeof(mincss_context));
@@ -99,7 +97,7 @@ static void perform_parse(mincss_context *context)
                 if (ch < 32)
                     printf("^%c", ch+64);
                 else
-                    putchar_utf8(ch, stdout);
+                    mincss_putchar_utf8(ch, stdout);
             }
             printf("\"\n");
         }
@@ -116,7 +114,7 @@ static void perform_parse(mincss_context *context)
 }
 
 /* Send a Unicode character to a UTF8-encoded stream. */
-static void putchar_utf8(int32_t val, FILE *fl)
+void mincss_putchar_utf8(int32_t val, FILE *fl)
 {
     if (val < 0) {
         putc('?', fl);
