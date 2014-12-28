@@ -40,6 +40,7 @@ static void dump_token(token *tok);
 
 static node *new_node(nodetype typ);
 static void free_node(node *nod);
+static void dump_node(node *nod, int depth);
 static void node_copy_text(node *nod, token *tok);
 static void node_add_token(node *nod, token *tok);
 static void node_add_node(node *nod, node *nod2);
@@ -54,7 +55,7 @@ void mincss_read(mincss_context *context)
     read_token(context, 1);
 
     node *nod = read_stylesheet(context);
-
+    dump_node(nod, 0);
     free_node(nod);
 }
 
@@ -250,6 +251,50 @@ static void free_node(node *nod)
 	}
 	free(nod->nodes);
 	nod->nodes = NULL;
+    }
+}
+
+static void dump_indent(int val)
+{
+    int ix;
+    for (ix=0; ix<val; ix++)
+	putchar(' ');
+}
+
+static void dump_node(node *nod, int depth)
+{
+    dump_indent(depth);
+    printf("node-type %d", (int)nod->typ);
+
+    if (nod->text) {
+	printf(" \"");
+	int ix;
+        for (ix=0; ix<nod->textlen; ix++) {
+            int32_t ch = nod->text[ix];
+            if (ch < 32)
+                printf("^%c", ch+64);
+            else
+                mincss_putchar_utf8(ch, stdout);
+        }
+	printf("\"");
+    }
+    printf("\n");
+
+    if (nod->tokens) {
+	int ix;
+	dump_indent(depth+1);
+	printf("%d tokens:\n", nod->numtokens);
+	for (ix=0; ix<nod->numtokens; ix++) {
+	    dump_indent(depth+2);
+	    dump_token(nod->tokens[ix]);
+	}
+    }
+
+    if (nod->nodes) {
+	int ix;
+	for (ix=0; ix<nod->numnodes; ix++) {
+	    dump_node(nod->nodes[ix], depth+1);
+	}
     }
 }
 
