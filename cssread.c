@@ -447,6 +447,7 @@ static node *read_block(mincss_context *context)
     node *nod = new_node(nod_Block);
 
     if (tok->typ == tok_RBrace) {
+	read_token(context, 1);
 	return nod;
     }
     return NULL;
