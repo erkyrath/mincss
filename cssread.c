@@ -14,6 +14,7 @@ typedef enum nodetype_enum {
     nod_None = 0,
     nod_Stylesheet = 1,
     nod_AtRule = 2,
+    nod_Block = 3,
 } nodetype;
 
 typedef struct node_struct {
@@ -45,6 +46,8 @@ static void node_add_node(node *nod, node *nod2);
 
 static node *read_stylesheet(mincss_context *context);
 static node *read_statement(mincss_context *context);
+static node *read_block(mincss_context *context);
+static int read_any_until_semiblock(mincss_context *context, node *nod);
 
 void mincss_read(mincss_context *context)
 {
@@ -317,12 +320,73 @@ static node *read_statement(mincss_context *context)
     if (tok->typ == tok_AtKeyword) {
 	node *nod = new_node(nod_AtRule);
 	node_copy_text(nod, tok);
-	/* ### eat any followed by a block or semicolon */
-	return nod;
+	read_token(context, 1);
+	int res = read_any_until_semiblock(context, nod);
+	if (res == 1) {
+	    /* semicolon */
+	    return nod;
+	}
+	if (res == 2) {
+	    /* beginning of block */
+	    node *blocknod = read_block(context);
+	    if (!blocknod) {
+		/* error */
+		free_node(nod);
+		return NULL;
+	    }
+	    node_add_node(nod, blocknod);
+	    return nod;
+	}
+	/* error */
+	free_node(nod);
+	return NULL;
     }
     else {
 	/* ### ruleset */
 	/* ### eat any */
 	return NULL;
     }
+}
+
+static int read_any_until_semiblock(mincss_context *context, node *nod)
+{
+    while (1) {
+	token *tok = context->nexttok;
+	if (!tok)
+	    return 0;
+	if (tok->typ == tok_Semicolon) {
+	    read_token(context, 1);
+	    return 1;
+	}
+	if (tok->typ == tok_Ident 
+	    || tok->typ == tok_Number
+	    || tok->typ == tok_String) {
+	    node_add_token(nod, tok);
+	    read_token(context, 1);
+	    continue;
+	}
+	if (tok->typ == tok_LBrace) {
+	    return 2;
+	}
+	/* ### eat balanced until the next semi or block-end */
+	return 0;
+    }
+}
+
+static node *read_block(mincss_context *context)
+{
+    token *tok = context->nexttok;
+    if (!tok || tok->typ != tok_LBrace) {
+	return NULL;
+    }
+    read_token(context, 1);
+    if (!tok)
+	return NULL;
+
+    node *nod = new_node(nod_Block);
+
+    if (tok->typ == tok_RBrace) {
+	return nod;
+    }
+    return NULL;
 }
