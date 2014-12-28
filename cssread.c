@@ -264,7 +264,23 @@ static void dump_indent(int val)
 static void dump_node(node *nod, int depth)
 {
     dump_indent(depth);
-    printf("node-type %d", (int)nod->typ);
+    switch (nod->typ) {
+    case nod_None:
+	printf("None");
+	break;
+    case nod_Stylesheet:
+	printf("Stylesheet");
+	break;
+    case nod_AtRule:
+	printf("AtRule");
+	break;
+    case nod_Block:
+	printf("Block");
+	break;
+    default:
+	printf("??? node-type %d", (int)nod->typ);
+	break;
+    }
 
     if (nod->text) {
 	printf(" \"");
