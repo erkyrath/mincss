@@ -13,6 +13,7 @@ typedef struct token_struct {
 typedef enum nodetype_enum {
     nod_None = 0,
     nod_Stylesheet = 1,
+    nod_AtRule = 2,
 } nodetype;
 
 typedef struct node_struct {
@@ -20,7 +21,7 @@ typedef struct node_struct {
 
     /* All of these fields are optional. */
     int32_t *text;
-    int len;
+    int textlen;
     
     token **tokens;
     int numtokens;
@@ -38,6 +39,7 @@ static void dump_token(token *tok);
 
 static node *new_node(nodetype typ);
 static void free_node(node *nod);
+static void node_copy_text(node *nod, token *tok);
 static void node_add_token(node *nod, token *tok);
 static void node_add_node(node *nod, node *nod2);
 
@@ -210,7 +212,7 @@ static node *new_node(nodetype typ)
 	return NULL; /*### malloc error*/
     nod->typ = typ;
     nod->text = NULL;
-    nod->len = 0;
+    nod->textlen = 0;
     nod->tokens = NULL;
     nod->numtokens = 0;
     nod->tokens_size = 0;
@@ -245,6 +247,15 @@ static void free_node(node *nod)
 	}
 	free(nod->nodes);
 	nod->nodes = NULL;
+    }
+}
+
+static void node_copy_text(node *nod, token *tok)
+{
+    if (tok->text) {
+	nod->textlen = tok->len;
+        nod->text = (int32_t *)malloc(sizeof(int32_t) * tok->len);
+        memcpy(nod->text, tok->text, sizeof(int32_t) * tok->len);
     }
 }
 
@@ -300,4 +311,18 @@ static node *read_stylesheet(mincss_context *context)
 
 static node *read_statement(mincss_context *context)
 {
+    token *tok = context->nexttok;
+    if (!tok)
+	return NULL;
+    if (tok->typ == tok_AtKeyword) {
+	node *nod = new_node(nod_AtRule);
+	node_copy_text(nod, tok);
+	/* ### eat any followed by a block or semicolon */
+	return nod;
+    }
+    else {
+	/* ### ruleset */
+	/* ### eat any */
+	return NULL;
+    }
 }
