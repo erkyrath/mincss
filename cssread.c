@@ -10,19 +10,43 @@ typedef struct token_struct {
     int len;
 } token;
 
+typedef enum nodetype_enum {
+    nod_None = 0,
+    nod_Stylesheet = 1,
+} nodetype;
+
+typedef struct node_struct {
+    nodetype typ;
+
+    /* All of these fields are optional. */
+    int32_t *text;
+    int len;
+    
+    token **tokens;
+    int numtokens;
+    int tokens_size;
+
+    struct node_struct **nodes;
+    int numnodes;
+    int nodes_size;
+} node;
+
 static token *read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
 static void dump_token(token *tok);
 
+static node *new_node(nodetype typ);
+static void free_node(node *nod);
+static void node_add_token(node *nod, token *tok);
+static void node_add_node(node *nod, node *nod2);
+
+static node *read_stylesheet(mincss_context *context);
+
 void mincss_read(mincss_context *context)
 {
-    while (1) {
-        token *tok = read_token(context, 1);
-        if (!tok)
-            break;
-        dump_token(tok);
-        free_token(tok);
-    }
+    node *nod = read_stylesheet(context);
+
+    free_node(nod);
 }
 
 /* Read the next token. Returns NULL on EOF (rather than an EOF token). 
@@ -148,3 +172,85 @@ static void dump_token(token *tok)
     }
     printf("\n");
 }
+
+static node *new_node(nodetype typ)
+{
+    node *nod = (node *)malloc(sizeof(node));
+    if (!nod)
+	return NULL; /*### malloc error*/
+    nod->typ = typ;
+    nod->text = NULL;
+    nod->len = 0;
+    nod->tokens = NULL;
+    nod->numtokens = 0;
+    nod->tokens_size = 0;
+    nod->nodes = NULL;
+    nod->numnodes = 0;
+    nod->nodes_size = 0;
+    return nod;
+}
+
+static void free_node(node *nod)
+{
+    int ix;
+
+    if (nod->text) {
+	free(nod->text);
+	nod->text = NULL;
+    }
+
+    if (nod->tokens) {
+	for (ix=0; ix<nod->numtokens; ix++) {
+	    free_token(nod->tokens[ix]);
+	    nod->tokens[ix] = NULL;
+	}
+	free(nod->tokens);
+	nod->tokens = NULL;
+    }
+
+    if (nod->nodes) {
+	for (ix=0; ix<nod->numnodes; ix++) {
+	    free_node(nod->nodes[ix]);
+	    nod->nodes[ix] = NULL;
+	}
+	free(nod->nodes);
+	nod->nodes = NULL;
+    }
+}
+
+static void node_add_token(node *nod, token *tok)
+{
+    if (!nod->tokens) {
+	nod->tokens_size = 4;
+	nod->tokens = (token **)malloc(nod->tokens_size * sizeof(token *));
+    }
+    else if (nod->numtokens >= nod->tokens_size) {
+	nod->tokens_size *= 2;
+	nod->tokens = (token **)realloc(nod->tokens, nod->tokens_size * sizeof(token *));
+    }
+    if (!nod->tokens)
+	return; /*### malloc error*/
+    nod->tokens[nod->numtokens] = tok;
+    nod->numtokens += 1;
+}
+
+static void node_add_node(node *nod, node *nod2)
+{
+    if (!nod->nodes) {
+	nod->nodes_size = 4;
+	nod->nodes = (node **)malloc(nod->nodes_size * sizeof(node *));
+    }
+    else if (nod->numnodes >= nod->nodes_size) {
+	nod->nodes_size *= 2;
+	nod->nodes = (node **)realloc(nod->nodes, nod->nodes_size * sizeof(node *));
+    }
+    if (!nod->nodes)
+	return; /*### malloc error*/
+    nod->nodes[nod->numnodes] = nod2;
+    nod->numnodes += 1;
+}
+
+static node *read_stylesheet(mincss_context *context)
+{
+}
+
