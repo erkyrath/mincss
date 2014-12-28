@@ -31,8 +31,9 @@ typedef struct node_struct {
     int nodes_size;
 } node;
 
-static token *read_token(mincss_context *context, int skipwhite);
+static void read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
+static token *copy_token(token *tok);
 static void dump_token(token *tok);
 
 static node *new_node(nodetype typ);
@@ -41,26 +42,35 @@ static void node_add_token(node *nod, token *tok);
 static void node_add_node(node *nod, node *nod2);
 
 static node *read_stylesheet(mincss_context *context);
+static node *read_statement(mincss_context *context);
 
 void mincss_read(mincss_context *context)
 {
+    read_token(context, 1);
+
     node *nod = read_stylesheet(context);
 
     free_node(nod);
 }
 
-/* Read the next token. Returns NULL on EOF (rather than an EOF token). 
+/* Read the next token, storing it in context->nexttok. Stores NULL on EOF
+   (rather than an EOF token). 
    Optionally skip over whitespace and comments.
    ### I may have to change this to "skip comments but not whitespace."
  */
-static token *read_token(mincss_context *context, int skipwhite)
+static void read_token(mincss_context *context, int skipwhite)
 {
     tokentype typ;
+
+    if (context->nexttok) {
+	free_token(context->nexttok);
+	context->nexttok = NULL;
+    }
 
     while (1) {
         typ = mincss_next_token(context);
         if (typ == tok_EOF)
-            return NULL;
+            return;
         if (typ != tok_Comment && typ != tok_Space)
             break;
         if (!skipwhite)
@@ -69,7 +79,7 @@ static token *read_token(mincss_context *context, int skipwhite)
 
     token *tok = (token *)malloc(sizeof(token));
     if (!tok)
-        return NULL;
+        return;
 
     /* We're going to copy out the content part of the token string. Skip
        string delimiters, the @ in AtKeyword, etc. If the content length
@@ -142,7 +152,7 @@ static token *read_token(mincss_context *context, int skipwhite)
         tok->text = NULL;
     }
 
-    return tok;
+    context->nexttok = tok;
 }
 
 static void free_token(token *tok)
@@ -153,6 +163,26 @@ static void free_token(token *tok)
     }
     tok->len = 0;
     free(tok);
+}
+
+static token *copy_token(token *tok)
+{
+    token *newtok = (token *)malloc(sizeof(token));
+    if (!newtok)
+        return NULL;
+
+    newtok->typ = tok->typ;
+    if (tok->text) {
+	newtok->len = tok->len;
+        newtok->text = (int32_t *)malloc(sizeof(int32_t) * tok->len);
+        memcpy(newtok->text, tok->text, sizeof(int32_t) * tok->len);
+    }
+    else {
+	newtok->len = 0;
+	newtok->text = NULL;
+    }
+
+    return newtok;
 }
 
 static void dump_token(token *tok) 
@@ -230,7 +260,7 @@ static void node_add_token(node *nod, token *tok)
     }
     if (!nod->tokens)
 	return; /*### malloc error*/
-    nod->tokens[nod->numtokens] = tok;
+    nod->tokens[nod->numtokens] = copy_token(tok);
     nod->numtokens += 1;
 }
 
@@ -252,5 +282,22 @@ static void node_add_node(node *nod, node *nod2)
 
 static node *read_stylesheet(mincss_context *context)
 {
+    node *sheetnod = new_node(nod_Stylesheet);
+
+    while (context->nexttok) {
+	token *tok = context->nexttok;
+	if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
+	    read_token(context, 1);
+	    continue;
+	}
+	node *nod = read_statement(context);
+	if (nod)
+	    node_add_node(sheetnod, nod);
+    }
+
+    return sheetnod;
 }
 
+static node *read_statement(mincss_context *context)
+{
+}

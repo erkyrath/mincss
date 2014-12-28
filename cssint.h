@@ -23,6 +23,8 @@ struct mincss_context_struct {
     int tokenbufsize;
     int tokenmark;
     int tokenlen;
+
+    void *nexttok; /* ### token* */
 };
 
 typedef enum tokentype_enum {
