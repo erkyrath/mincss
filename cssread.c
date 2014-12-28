@@ -27,6 +27,7 @@ void mincss_read(mincss_context *context)
 
 /* Read the next token. Returns NULL on EOF (rather than an EOF token). 
    Optionally skip over whitespace and comments.
+   ### I may have to change this to "skip comments but not whitespace."
  */
 static token *read_token(mincss_context *context, int skipwhite)
 {

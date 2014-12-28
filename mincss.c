@@ -9,6 +9,8 @@
    - The nonascii range starts at 0x80 rather than 0xA0
    - Numbers can start with + or -, and can end with an exponent
    - Probably other changes
+
+   ### Ignores @charset and @import directives.
  */
 
 static void perform_parse(mincss_context *context);
