@@ -375,7 +375,8 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
-	    /* ### unclosed at-rule; warning, treat as terminated */
+	    warning(context, "Incomplete @-rule");
+	    /* treat as terminated */
 	    return 1;
 	}
 	if (tok->typ == tok_Semicolon) {
@@ -400,18 +401,8 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
-	    /* ### unclosed paren/bracket; warning, treat as terminated */
+	    warning(context, "Missing close-delimiter");
 	    return;
-	}
-	if (tok->typ == tok_Semicolon) {
-	    warning(context, "Unexpected semicolon");
-	    read_token(context, 1);
-	    continue;
-	}
-	if (tok->typ == tok_LBrace) {
-	    warning(context, "Unexpected block");
-	    read_block(context);
-	    continue;
 	}
 
 	if (tok->typ == closetok) {
@@ -420,12 +411,27 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	    return;
 	}
 
+	switch (tok->typ) {
+
+	case tok_Semicolon: 
+	    warning(context, "Unexpected semicolon");
+	    read_token(context, 1);
+	    continue;
+	    
+	case tok_LBrace:
+	    warning(context, "Unexpected block");
+	    read_block(context);
+	    continue;
+
 	/* ### open-paren/bracket, eat balanced */
 	/* ### illegal tokens, eat and discard */
 
-	node *toknod = new_node_token(tok);
-	node_add_node(nod, toknod);
-	read_token(context, 1);
+	default: {
+	    node *toknod = new_node_token(tok);
+	    node_add_node(nod, toknod);
+	    read_token(context, 1);
+	}
+	}
     }
 }
 
