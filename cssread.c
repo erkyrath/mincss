@@ -16,8 +16,8 @@ typedef enum nodetype_enum {
     nod_Stylesheet = 2,
     nod_AtRule = 3,
     nod_Block = 4,
-    nod_Paren = 5,
-    nod_Bracket = 6,
+    nod_Parens = 5,
+    nod_Brackets = 6,
     nod_Function = 7,
 } nodetype;
 
@@ -248,6 +248,15 @@ static void dump_node(node *nod, int depth)
     case nod_Block:
 	printf("Block");
 	break;
+    case nod_Parens:
+	printf("Parens");
+	break;
+    case nod_Brackets:
+	printf("Brackets");
+	break;
+    case nod_Function:
+	printf("Function");
+	break;
     default:
 	printf("??? node-type %d", (int)nod->typ);
 	break;
@@ -386,6 +395,40 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
     }
 }
 
+static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok)
+{
+    while (1) {
+	token *tok = context->nexttok;
+	if (!tok) {
+	    /* ### unclosed paren/bracket; warning, treat as terminated */
+	    return;
+	}
+	if (tok->typ == tok_Semicolon) {
+	    warning(context, "Unexpected semicolon");
+	    read_token(context, 1);
+	    continue;
+	}
+	if (tok->typ == tok_LBrace) {
+	    warning(context, "Unexpected block");
+	    read_block(context);
+	    continue;
+	}
+
+	if (tok->typ == closetok) {
+	    /* Expected close-token. */
+	    read_token(context, 1);
+	    return;
+	}
+
+	/* ### open-paren/bracket, eat balanced */
+	/* ### illegal tokens, eat and discard */
+
+	node *toknod = new_node_token(tok);
+	node_add_node(nod, toknod);
+	read_token(context, 1);
+    }
+}
+
 static node *read_block(mincss_context *context)
 {
     token *tok = context->nexttok;
@@ -435,7 +478,30 @@ static node *read_block(mincss_context *context)
 	    continue;
 	}
 
-	/* ### function, lparen, lbracket: read balanced */
+	case tok_Function: {
+	    node *subnod = new_node(nod_Function);
+	    node_copy_text(subnod, tok);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    read_any_until_close(context, subnod, tok_RParen);
+	    continue;
+	}
+
+	case tok_LParen: {
+	    node *subnod = new_node(nod_Parens);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    read_any_until_close(context, subnod, tok_RParen);
+	    continue;
+	}
+
+	case tok_LBracket: {
+	    node *subnod = new_node(nod_Brackets);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    read_any_until_close(context, subnod, tok_RBracket);
+	    continue;
+	}
 
 	case tok_CDO:
 	case tok_CDC:
