@@ -12,9 +12,10 @@ typedef struct token_struct {
 
 typedef enum nodetype_enum {
     nod_None = 0,
-    nod_Stylesheet = 1,
-    nod_AtRule = 2,
-    nod_Block = 3,
+    nod_Token = 1,
+    nod_Stylesheet = 2,
+    nod_AtRule = 3,
+    nod_Block = 4,
 } nodetype;
 
 typedef struct node_struct {
@@ -23,11 +24,9 @@ typedef struct node_struct {
     /* All of these fields are optional. */
     int32_t *text;
     int textlen;
-    
-    token **tokens;
-    int numtokens;
-    int tokens_size;
 
+    tokentype toktype;
+    
     struct node_struct **nodes;
     int numnodes;
     int nodes_size;
@@ -35,14 +34,13 @@ typedef struct node_struct {
 
 static void read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
-static token *copy_token(token *tok);
 static void dump_token(token *tok);
 
 static node *new_node(nodetype typ);
+static node *new_node_token(token *tok);
 static void free_node(node *nod);
 static void dump_node(node *nod, int depth);
 static void node_copy_text(node *nod, token *tok);
-static void node_add_token(node *nod, token *tok);
 static void node_add_node(node *nod, node *nod2);
 
 static node *read_stylesheet(mincss_context *context);
@@ -171,26 +169,6 @@ static void free_token(token *tok)
     free(tok);
 }
 
-static token *copy_token(token *tok)
-{
-    token *newtok = (token *)malloc(sizeof(token));
-    if (!newtok)
-        return NULL;
-
-    newtok->typ = tok->typ;
-    if (tok->text) {
-	newtok->len = tok->len;
-        newtok->text = (int32_t *)malloc(sizeof(int32_t) * tok->len);
-        memcpy(newtok->text, tok->text, sizeof(int32_t) * tok->len);
-    }
-    else {
-	newtok->len = 0;
-	newtok->text = NULL;
-    }
-
-    return newtok;
-}
-
 static void dump_token(token *tok) 
 {
     printf("%s", mincss_token_name(tok->typ));
@@ -217,12 +195,17 @@ static node *new_node(nodetype typ)
     nod->typ = typ;
     nod->text = NULL;
     nod->textlen = 0;
-    nod->tokens = NULL;
-    nod->numtokens = 0;
-    nod->tokens_size = 0;
     nod->nodes = NULL;
     nod->numnodes = 0;
     nod->nodes_size = 0;
+    return nod;
+}
+
+static node *new_node_token(token *tok)
+{
+    node *nod = new_node(nod_Token);
+    nod->toktype = tok->typ;
+    node_copy_text(nod, tok);
     return nod;
 }
 
@@ -233,15 +216,6 @@ static void free_node(node *nod)
     if (nod->text) {
 	free(nod->text);
 	nod->text = NULL;
-    }
-
-    if (nod->tokens) {
-	for (ix=0; ix<nod->numtokens; ix++) {
-	    free_token(nod->tokens[ix]);
-	    nod->tokens[ix] = NULL;
-	}
-	free(nod->tokens);
-	nod->tokens = NULL;
     }
 
     if (nod->nodes) {
@@ -267,6 +241,10 @@ static void dump_node(node *nod, int depth)
     switch (nod->typ) {
     case nod_None:
 	printf("None");
+	break;
+    case nod_Token:
+	printf("Token");
+	printf(" (%s)", mincss_token_name(nod->toktype));
 	break;
     case nod_Stylesheet:
 	printf("Stylesheet");
@@ -296,16 +274,6 @@ static void dump_node(node *nod, int depth)
     }
     printf("\n");
 
-    if (nod->tokens) {
-	int ix;
-	dump_indent(depth+1);
-	printf("%d tokens:\n", nod->numtokens);
-	for (ix=0; ix<nod->numtokens; ix++) {
-	    dump_indent(depth+2);
-	    dump_token(nod->tokens[ix]);
-	}
-    }
-
     if (nod->nodes) {
 	int ix;
 	for (ix=0; ix<nod->numnodes; ix++) {
@@ -321,22 +289,6 @@ static void node_copy_text(node *nod, token *tok)
         nod->text = (int32_t *)malloc(sizeof(int32_t) * tok->len);
         memcpy(nod->text, tok->text, sizeof(int32_t) * tok->len);
     }
-}
-
-static void node_add_token(node *nod, token *tok)
-{
-    if (!nod->tokens) {
-	nod->tokens_size = 4;
-	nod->tokens = (token **)malloc(nod->tokens_size * sizeof(token *));
-    }
-    else if (nod->numtokens >= nod->tokens_size) {
-	nod->tokens_size *= 2;
-	nod->tokens = (token **)realloc(nod->tokens, nod->tokens_size * sizeof(token *));
-    }
-    if (!nod->tokens)
-	return; /*### malloc error*/
-    nod->tokens[nod->numtokens] = copy_token(tok);
-    nod->numtokens += 1;
 }
 
 static void node_add_node(node *nod, node *nod2)
@@ -422,7 +374,8 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
 	if (tok->typ == tok_Ident 
 	    || tok->typ == tok_Number
 	    || tok->typ == tok_String) {
-	    node_add_token(nod, tok);
+	    node *toknod = new_node_token(tok);
+	    node_add_node(nod, toknod);
 	    read_token(context, 1);
 	    continue;
 	}
