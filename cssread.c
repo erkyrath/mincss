@@ -34,7 +34,6 @@ typedef struct node_struct {
 
 static void read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
-static void dump_token(token *tok);
 
 static node *new_node(nodetype typ);
 static node *new_node_token(token *tok);
@@ -167,24 +166,6 @@ static void free_token(token *tok)
     }
     tok->len = 0;
     free(tok);
-}
-
-static void dump_token(token *tok) 
-{
-    printf("%s", mincss_token_name(tok->typ));
-    if (tok->text) {
-        int ix;
-        printf(":\"");
-        for (ix=0; ix<tok->len; ix++) {
-            int32_t ch = tok->text[ix];
-            if (ch < 32)
-                printf("^%c", ch+64);
-            else
-                mincss_putchar_utf8(ch, stdout);
-        }
-        printf("\"");
-    }
-    printf("\n");
 }
 
 static node *new_node(nodetype typ)
