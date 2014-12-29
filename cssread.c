@@ -16,10 +16,12 @@ typedef enum nodetype_enum {
     nod_Token = 1,
     nod_Stylesheet = 2,
     nod_AtRule = 3,
-    nod_Block = 4,
-    nod_Parens = 5,
-    nod_Brackets = 6,
-    nod_Function = 7,
+    nod_Ruleset = 4,
+    nod_Selector = 5,
+    nod_Block = 6,
+    nod_Parens = 7,
+    nod_Brackets = 8,
+    nod_Function = 9,
 } nodetype;
 
 typedef struct node_struct {
@@ -251,6 +253,12 @@ static void dump_node(node *nod, int depth)
     case nod_AtRule:
 	printf("AtRule");
 	break;
+    case nod_Ruleset:
+	printf("Ruleset");
+	break;
+    case nod_Selector:
+	printf("Selector");
+	break;
     case nod_Block:
 	printf("Block");
 	break;
@@ -368,8 +376,30 @@ static node *read_statement(mincss_context *context)
 	return NULL;
     }
     else {
-	/* ### ruleset */
-	/* ### eat any */
+	/* This is a ruleset. */
+	node *nod = new_node(nod_Ruleset);
+	node *selnod = new_node(nod_Selector);
+	node_add_node(nod, selnod);
+	int res = read_any_until_semiblock(context, selnod);
+	if (res == 1) {
+	    warning(context, "Ruleset lacks block");
+	    free_node(nod);
+	    return NULL;
+	}
+	if (res == 2) {
+	    /* beginning of declaration group */
+	    /* ### scaffolding! */
+	    node *blocknod = read_block(context);
+	    if (!blocknod) {
+		/* error */
+		free_node(nod);
+		return NULL;
+	    }
+	    node_add_node(nod, blocknod);
+	    return nod;
+	}
+	/* error */
+	free_node(nod);
 	return NULL;
     }
 }
@@ -386,7 +416,7 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
-	    warning(context, "Incomplete @-rule");
+	    warning(context, "Incomplete @-rule"); /*### or selector! label has to change */
 	    /* treat as terminated */
 	    return 1;
 	}
