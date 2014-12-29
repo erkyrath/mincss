@@ -8,6 +8,7 @@ typedef struct token_struct {
     tokentype typ;
     int32_t *text;
     int len;
+    int div;
 } token;
 
 typedef enum nodetype_enum {
@@ -27,6 +28,7 @@ typedef struct node_struct {
     /* All of these fields are optional. */
     int32_t *text;
     int textlen;
+    int textdiv;
 
     tokentype toktype;
     
@@ -104,6 +106,7 @@ static void read_token(mincss_context *context, int skipwhite)
 
     int pos = 0;
     int len = context->tokenlen;
+    int div = 0;
     switch (typ) {
 
     case tok_Ident:
@@ -113,9 +116,8 @@ static void read_token(mincss_context *context, int skipwhite)
         break;
 
     case tok_Dimension:
-        /* ### Should we allocate the unit separately? Or store the
-           division? Really, we should have marked that division
-           during lexing. */
+        /* Copy the entire text; retain the division mark. */
+	div = context->tokendiv;
         break;
 
     case tok_Comment:
@@ -162,10 +164,12 @@ static void read_token(mincss_context *context, int skipwhite)
         tok->len = len;
         tok->text = (int32_t *)malloc(sizeof(int32_t) * len);
         memcpy(tok->text, context->token+pos, sizeof(int32_t) * len);
+	tok->div = div;
     }
     else {
         tok->len = 0;
         tok->text = NULL;
+	tok->div = 0;
     }
 
     context->nexttok = tok;
@@ -189,6 +193,7 @@ static node *new_node(nodetype typ)
     nod->typ = typ;
     nod->text = NULL;
     nod->textlen = 0;
+    nod->textdiv = 0;
     nod->nodes = NULL;
     nod->numnodes = 0;
     nod->nodes_size = 0;
@@ -275,6 +280,10 @@ static void dump_node(node *nod, int depth)
         }
 	printf("\"");
     }
+    if (nod->textdiv) {
+	printf(" <%d/%d>", nod->textdiv, nod->textlen);
+    }
+
     printf("\n");
 
     if (nod->nodes) {
@@ -291,6 +300,7 @@ static void node_copy_text(node *nod, token *tok)
 	nod->textlen = tok->len;
         nod->text = (int32_t *)malloc(sizeof(int32_t) * tok->len);
         memcpy(nod->text, tok->text, sizeof(int32_t) * tok->len);
+	nod->textdiv = tok->div;
     }
 }
 

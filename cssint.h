@@ -23,6 +23,9 @@ struct mincss_context_struct {
     int tokenbufsize;
     int tokenmark;
     int tokenlen;
+    /* tokendiv is a marked position within the token, between 0 and
+       tokenlen. This is used for the Dimension token. */
+    int tokendiv;
 
     int linenum; /* for error messages */
 

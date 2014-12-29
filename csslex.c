@@ -71,6 +71,8 @@ tokentype mincss_next_token(mincss_context *context)
         context->tokenmark = extra;
     }
 
+    context->tokendiv = 0;
+
     int32_t ch = next_char(context);
     if (ch == -1) {
         return tok_EOF;
@@ -196,12 +198,17 @@ tokentype mincss_next_token(mincss_context *context)
         if (ch == '%')
             return tok_Percentage;
         if (ch == '-' || IS_IDENT_START(ch)) {
+            /* ### doesn't check for backslash escapes */
             putback_char(context, 1);
+            int numlen = context->tokenlen;
             int len = parse_ident(context, 0);
-            if (len > 0)
+            if (len > 0) {
+                context->tokendiv = numlen;
                 return tok_Dimension;
-            else
+            }
+            else {
                 return tok_Number;
+            }
         }
         putback_char(context, 1);
         return tok_Number;
@@ -806,7 +813,7 @@ static int32_t next_char(mincss_context *context)
         return -1;
 
     if (context->tokenlen < context->tokenmark) {
-	/* Pop a put-back character. */
+        /* Pop a put-back character. */
         ch = context->token[context->tokenlen];
         context->tokenlen++;
         return ch;
@@ -926,7 +933,7 @@ static int32_t next_char(mincss_context *context)
 
     /* This isn't smart about DOS line breaks. */
     if (ch == '\n' || ch == '\r')
-	context->linenum += 1;
+        context->linenum += 1;
 
     context->token[context->tokenlen] = ch;
     context->tokenlen += 1;
@@ -946,6 +953,8 @@ static void putback_char(mincss_context *context, int count)
     }
 
     context->tokenlen -= count;
+    if (context->tokendiv > context->tokenlen)
+        context->tokendiv = context->tokenlen;
 }
 
 /* Remove some characters from the end of the current token.
@@ -964,6 +973,8 @@ static void erase_char(mincss_context *context, int count)
         memmove(context->token+(context->tokenlen - count), context->token+context->tokenlen, diff*sizeof(int32_t));
     context->tokenmark -= count;
     context->tokenlen -= count;
+    if (context->tokendiv > context->tokenlen)
+        context->tokendiv = context->tokenlen;
 }
 
 /* Compare the tail of the current token against a given (ASCII) string,
