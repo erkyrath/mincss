@@ -16,6 +16,9 @@ typedef enum nodetype_enum {
     nod_Stylesheet = 2,
     nod_AtRule = 3,
     nod_Block = 4,
+    nod_Paren = 5,
+    nod_Bracket = 6,
+    nod_Function = 7,
 } nodetype;
 
 typedef struct node_struct {
@@ -342,29 +345,35 @@ static node *read_statement(mincss_context *context)
     }
 }
 
+/* The "any" production in the CSS grammar is any token except
+   Semicolon, AtKeyword, LBrace, RBrace, RParen, RBracket, CDO, CDC.
+   An LParen or LBracket causes a balanced read, as does Function.
+   Bad tokens are discarded with a warning (including a balanced
+   block), unless it's an expected terminator.
+*/
+
 static int read_any_until_semiblock(mincss_context *context, node *nod)
 {
     while (1) {
 	token *tok = context->nexttok;
-	if (!tok)
-	    return 0;
+	if (!tok) {
+	    /* ### unclosed at-rule; warning, treat as terminated */
+	    return 1;
+	}
 	if (tok->typ == tok_Semicolon) {
 	    read_token(context, 1);
 	    return 1;
 	}
-	if (tok->typ == tok_Ident 
-	    || tok->typ == tok_Number
-	    || tok->typ == tok_String) {
-	    node *toknod = new_node_token(tok);
-	    node_add_node(nod, toknod);
-	    read_token(context, 1);
-	    continue;
-	}
 	if (tok->typ == tok_LBrace) {
 	    return 2;
 	}
-	/* ### eat balanced until the next semi or block-end */
-	return 0;
+
+	/* ### open-paren/bracket, eat balanced */
+	/* ### illegal tokens, eat and discard */
+
+	node *toknod = new_node_token(tok);
+	node_add_node(nod, toknod);
+	read_token(context, 1);
     }
 }
 
@@ -401,6 +410,13 @@ static node *read_block(mincss_context *context)
 	    continue;
 	}
 
+	if (tok->typ == tok_Semicolon) {
+	    node *subnod = new_node_token(tok);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    continue;
+	}
+
 	if (tok->typ == tok_AtKeyword) {
 	    node *atnod = new_node_token(tok);
 	    node_add_node(nod, atnod);
@@ -408,6 +424,23 @@ static node *read_block(mincss_context *context)
 	    continue;
 	}
 
-	/* ### any? */
+	/* ### function, lparen, lbracket: read balanced */
+
+	if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
+	    /* ### warning, not allowed inside block */
+            read_token(context, 1);
+	    continue;
+	}
+
+	if (tok->typ == tok_RParen || tok->typ == tok_RBracket) {
+	    /* ### warning, unbalanced close */
+            read_token(context, 1);
+	    continue;
+	}
+
+	/* Anything else is a single "any". */
+	node *subnod = new_node_token(tok);
+	node_add_node(nod, subnod);
+	read_token(context, 1);
     }
 }
