@@ -372,17 +372,42 @@ static node *read_block(mincss_context *context)
 {
     token *tok = context->nexttok;
     if (!tok || tok->typ != tok_LBrace) {
-	return NULL;
+	return NULL; /* ### internal error */
     }
     read_token(context, 1);
-    if (!tok)
-	return NULL;
 
     node *nod = new_node(nod_Block);
 
-    if (tok->typ == tok_RBrace) {
-	read_token(context, 1);
-	return nod;
+    while (1) {
+	tok = context->nexttok;
+	if (!tok) {
+	    return nod; /* ### warning, implicitly close block */
+	}
+
+	if (tok->typ == tok_RBrace) {
+	    /* Done */
+	    read_token(context, 1);
+	    return nod;
+	}
+
+	if (tok->typ == tok_LBrace) {
+	    /* Sub-block */
+	    node *blocknod = read_block(context);
+	    if (!blocknod) {
+		/* error, already reported */
+		continue;
+	    }
+	    node_add_node(nod, blocknod);
+	    continue;
+	}
+
+	if (tok->typ == tok_AtKeyword) {
+	    node *atnod = new_node_token(tok);
+	    node_add_node(nod, atnod);
+            read_token(context, 1);
+	    continue;
+	}
+
+	/* ### any? */
     }
-    return NULL;
 }
