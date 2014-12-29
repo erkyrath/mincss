@@ -35,6 +35,8 @@ typedef struct node_struct {
     int nodes_size;
 } node;
 
+static void warning(mincss_context *context, char *msg);
+
 static void read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
 
@@ -59,10 +61,17 @@ void mincss_read(mincss_context *context)
     free_node(nod);
 }
 
+void warning(mincss_context *context, char *msg)
+{
+    printf("### WARNING: %s\n", msg);
+}
+
 /* Read the next token, storing it in context->nexttok. Stores NULL on EOF
    (rather than an EOF token). 
    Optionally skip over whitespace and comments.
    ### I may have to change this to "skip comments but not whitespace."
+   ### If we wind up never having more than one allocated, I may blow off
+       the struct and just keep data in the context.
  */
 static void read_token(mincss_context *context, int skipwhite)
 {
@@ -390,7 +399,8 @@ static node *read_block(mincss_context *context)
     while (1) {
 	tok = context->nexttok;
 	if (!tok) {
-	    return nod; /* ### warning, implicitly close block */
+	    warning(context, "Unexpected end of block");
+	    return nod;
 	}
 
 	if (tok->typ == tok_RBrace) {
@@ -427,13 +437,19 @@ static node *read_block(mincss_context *context)
 	/* ### function, lparen, lbracket: read balanced */
 
 	if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
-	    /* ### warning, not allowed inside block */
+	    warning(context, "HTML comment delimiters not allowed inside block");
             read_token(context, 1);
 	    continue;
 	}
 
-	if (tok->typ == tok_RParen || tok->typ == tok_RBracket) {
-	    /* ### warning, unbalanced close */
+	if (tok->typ == tok_RParen) {
+	    warning(context, "Unexpected close-paren inside block");
+            read_token(context, 1);
+	    continue;
+	}
+
+	if (tok->typ == tok_RBracket) {
+	    warning(context, "Unexpected close-bracket inside block");
             read_token(context, 1);
 	    continue;
 	}
