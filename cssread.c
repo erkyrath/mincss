@@ -403,13 +403,14 @@ static node *read_block(mincss_context *context)
 	    return nod;
 	}
 
-	if (tok->typ == tok_RBrace) {
+	switch (tok->typ) {
+
+	case tok_RBrace:
 	    /* Done */
 	    read_token(context, 1);
 	    return nod;
-	}
 
-	if (tok->typ == tok_LBrace) {
+	case tok_LBrace: {
 	    /* Sub-block */
 	    node *blocknod = read_block(context);
 	    if (!blocknod) {
@@ -420,14 +421,14 @@ static node *read_block(mincss_context *context)
 	    continue;
 	}
 
-	if (tok->typ == tok_Semicolon) {
+	case tok_Semicolon: {
 	    node *subnod = new_node_token(tok);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    continue;
 	}
 
-	if (tok->typ == tok_AtKeyword) {
+	case tok_AtKeyword: {
 	    node *atnod = new_node_token(tok);
 	    node_add_node(nod, atnod);
             read_token(context, 1);
@@ -436,27 +437,28 @@ static node *read_block(mincss_context *context)
 
 	/* ### function, lparen, lbracket: read balanced */
 
-	if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
+	case tok_CDO:
+	case tok_CDC:
 	    warning(context, "HTML comment delimiters not allowed inside block");
             read_token(context, 1);
 	    continue;
-	}
 
-	if (tok->typ == tok_RParen) {
+	case tok_RParen:
 	    warning(context, "Unexpected close-paren inside block");
             read_token(context, 1);
 	    continue;
-	}
 
-	if (tok->typ == tok_RBracket) {
+	case tok_RBracket:
 	    warning(context, "Unexpected close-bracket inside block");
             read_token(context, 1);
 	    continue;
-	}
 
-	/* Anything else is a single "any". */
-	node *subnod = new_node_token(tok);
-	node_add_node(nod, subnod);
-	read_token(context, 1);
+	default: {
+	    /* Anything else is a single "any". */
+	    node *subnod = new_node_token(tok);
+	    node_add_node(nod, subnod);
+	    read_token(context, 1);
+	}
+	}
     }
 }
