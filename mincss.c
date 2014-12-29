@@ -75,6 +75,7 @@ void mincss_parse_bytes_utf8(mincss_context *context,
 static void perform_parse(mincss_context *context)
 {
     context->errorcount = 0;
+    context->linenum = 1;
 
     context->tokenlen = 0;
     context->tokenmark = 0;

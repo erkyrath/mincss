@@ -63,7 +63,7 @@ void mincss_read(mincss_context *context)
 
 void warning(mincss_context *context, char *msg)
 {
-    printf("### WARNING: %s\n", msg);
+    printf("### WARNING (line %d): %s\n", context->linenum, msg);
 }
 
 /* Read the next token, storing it in context->nexttok. Stores NULL on EOF

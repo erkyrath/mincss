@@ -806,6 +806,7 @@ static int32_t next_char(mincss_context *context)
         return -1;
 
     if (context->tokenlen < context->tokenmark) {
+	/* Pop a put-back character. */
         ch = context->token[context->tokenlen];
         context->tokenlen++;
         return ch;
@@ -819,6 +820,9 @@ static int32_t next_char(mincss_context *context)
             return -1;
         }
     }
+
+    /* Read a unichar from the input source. (If the input source is bytes,
+       this is ugly UTF8 decoding.) */
 
     if (context->parse_byte) {
         int32_t byte0 = (context->parse_byte)(context->parserock);
@@ -919,6 +923,10 @@ static int32_t next_char(mincss_context *context)
     }
     if (ch == -1)
         return -1;
+
+    /* This isn't smart about DOS line breaks. */
+    if (ch == '\n' || ch == '\r')
+	context->linenum += 1;
 
     context->token[context->tokenlen] = ch;
     context->tokenlen += 1;

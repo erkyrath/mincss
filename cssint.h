@@ -24,6 +24,8 @@ struct mincss_context_struct {
     int tokenmark;
     int tokenlen;
 
+    int linenum; /* for error messages */
+
     void *nexttok; /* ### token* */
 };
 
