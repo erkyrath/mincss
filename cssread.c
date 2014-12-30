@@ -346,6 +346,30 @@ static void node_copy_text(node *nod, token *tok)
     }
 }
 
+/* Test whether the text of a node matches the given ASCII string.
+   (Case-insensitive.) */
+static int node_text_matches(node *nod, char *text)
+{
+    int len = strlen(text);
+    if (!text || !len)
+	return (nod->text == NULL);
+    if (len != nod->textlen)
+	return 0;
+
+    int ix;
+    for (ix=0; ix<len; ix++) {
+	int ch = text[ix];
+	int altch = ch;
+	if (ch >= 'A' && ch <= 'Z')
+	    altch = ch + ('a'-'A');
+	else if (ch >= 'a' && ch <= 'z')
+	    altch = ch - ('a'-'A');
+	if (nod->text[ix] != ch && nod->text[ix] != altch)
+	    return 0;
+    }
+    return 1;
+}
+
 static void node_add_node(node *nod, node *nod2)
 {
     if (!nod->nodes) {
@@ -818,6 +842,36 @@ static node *read_block(mincss_context *context)
     }
 }
 
+static void construct_atrule(mincss_context *context, node *nod);
+static void construct_toplevel(mincss_context *context, node *nod);
+
 static void construct_stylesheet(mincss_context *context, node *nod)
+{
+    int ix;
+    for (ix=0; ix<nod->numnodes; ix++) {
+	node *subnod = nod->nodes[ix];
+	if (subnod->typ == nod_AtRule)
+	    construct_atrule(context, subnod);
+	else if (subnod->typ == nod_TopLevel)
+	    construct_toplevel(context, subnod);
+	else
+	    mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
+    }
+}
+
+static void construct_atrule(mincss_context *context, node *nod)
+{
+    if (node_text_matches(nod, "charset")) {
+	mincss_note_error(context, "@charset rule ignored (must be UTF-8)");
+	return;
+    }
+    if (node_text_matches(nod, "page")) {
+	mincss_note_error(context, "@page rule ignored");
+	return;
+    }
+    /* Unrecognized at-rule; ignore. */
+}
+
+static void construct_toplevel(mincss_context *context, node *nod)
 {
 }
