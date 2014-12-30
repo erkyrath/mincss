@@ -40,8 +40,6 @@ typedef struct node_struct {
     int nodes_size;
 } node;
 
-static void warning(mincss_context *context, char *msg);
-
 static void read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
 
@@ -66,11 +64,6 @@ void mincss_read(mincss_context *context)
     node *nod = read_stylesheet(context);
     dump_node(nod, 0);
     free_node(nod);
-}
-
-void warning(mincss_context *context, char *msg)
-{
-    printf("### WARNING (line %d): %s\n", context->linenum, msg);
 }
 
 /* Read the next token, storing it in context->nexttok. Stores NULL on EOF
@@ -406,7 +399,7 @@ static node *read_statement(mincss_context *context)
 		node_add_node(nod, blocknod);
 		continue;
 	    }
-	    warning(context, "(Internal) Unexpected token after read_any_top_level");
+	    mincss_note_error(context, "(Internal) Unexpected token after read_any_top_level");
 	    free_node(nod);
 	    return NULL;
 	}
@@ -471,12 +464,12 @@ static void read_any_top_level(mincss_context *context, node *nod)
 	    continue;
 
 	case tok_RParen:
-	    warning(context, "Unexpected close-paren");
+	    mincss_note_error(context, "Unexpected close-paren");
             read_token(context, 1);
 	    continue;
 
 	case tok_RBracket:
-	    warning(context, "Unexpected close-bracket");
+	    mincss_note_error(context, "Unexpected close-bracket");
             read_token(context, 1);
 	    continue;
 
@@ -498,7 +491,7 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
-	    warning(context, "Incomplete @-rule");
+	    mincss_note_error(context, "Incomplete @-rule");
 	    /* treat as terminated */
 	    return 1;
 	}
@@ -539,22 +532,22 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
 
 	case tok_CDO:
 	case tok_CDC:
-	    warning(context, "HTML comment delimiters not allowed inside @-rule");
+	    mincss_note_error(context, "HTML comment delimiters not allowed inside @-rule");
             read_token(context, 1);
 	    continue;
 
 	case tok_RParen:
-	    warning(context, "Unexpected close-paren inside @-rule");
+	    mincss_note_error(context, "Unexpected close-paren inside @-rule");
             read_token(context, 1);
 	    continue;
 
 	case tok_RBracket:
-	    warning(context, "Unexpected close-bracket inside @-rule");
+	    mincss_note_error(context, "Unexpected close-bracket inside @-rule");
             read_token(context, 1);
 	    continue;
 
 	case tok_AtKeyword:
-	    warning(context, "Unexpected @-keyword inside @-rule");
+	    mincss_note_error(context, "Unexpected @-keyword inside @-rule");
             read_token(context, 1);
 	    continue;
 
@@ -572,7 +565,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
-	    warning(context, "Missing close-delimiter");
+	    mincss_note_error(context, "Missing close-delimiter");
 	    return;
 	}
 
@@ -585,12 +578,12 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	switch (tok->typ) {
 
 	case tok_Semicolon: 
-	    warning(context, "Unexpected semicolon");
+	    mincss_note_error(context, "Unexpected semicolon");
 	    read_token(context, 1);
 	    continue;
 	    
 	case tok_LBrace:
-	    warning(context, "Unexpected block");
+	    mincss_note_error(context, "Unexpected block");
 	    read_block(context);
 	    continue;
 
@@ -621,22 +614,22 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 
 	case tok_CDO:
 	case tok_CDC:
-	    warning(context, "HTML comment delimiters not allowed inside brackets");
+	    mincss_note_error(context, "HTML comment delimiters not allowed inside brackets");
             read_token(context, 1);
 	    continue;
 
 	case tok_RParen:
-	    warning(context, "Unexpected close-paren inside brackets");
+	    mincss_note_error(context, "Unexpected close-paren inside brackets");
             read_token(context, 1);
 	    continue;
 
 	case tok_RBracket:
-	    warning(context, "Unexpected close-bracket inside brackets");
+	    mincss_note_error(context, "Unexpected close-bracket inside brackets");
             read_token(context, 1);
 	    continue;
 
 	case tok_AtKeyword:
-	    warning(context, "Unexpected @-keyword inside brackets");
+	    mincss_note_error(context, "Unexpected @-keyword inside brackets");
             read_token(context, 1);
 	    continue;
 
@@ -653,7 +646,7 @@ static node *read_block(mincss_context *context)
 {
     token *tok = context->nexttok;
     if (!tok || tok->typ != tok_LBrace) {
-	warning(context, "(Internal) Unexpected token at read_block");
+	mincss_note_error(context, "(Internal) Unexpected token at read_block");
 	return NULL;
     }
     read_token(context, 1);
@@ -663,7 +656,7 @@ static node *read_block(mincss_context *context)
     while (1) {
 	tok = context->nexttok;
 	if (!tok) {
-	    warning(context, "Unexpected end of block");
+	    mincss_note_error(context, "Unexpected end of block");
 	    return nod;
 	}
 
@@ -726,17 +719,17 @@ static node *read_block(mincss_context *context)
 
 	case tok_CDO:
 	case tok_CDC:
-	    warning(context, "HTML comment delimiters not allowed inside block");
+	    mincss_note_error(context, "HTML comment delimiters not allowed inside block");
             read_token(context, 1);
 	    continue;
 
 	case tok_RParen:
-	    warning(context, "Unexpected close-paren inside block");
+	    mincss_note_error(context, "Unexpected close-paren inside block");
             read_token(context, 1);
 	    continue;
 
 	case tok_RBracket:
-	    warning(context, "Unexpected close-bracket inside block");
+	    mincss_note_error(context, "Unexpected close-bracket inside block");
             read_token(context, 1);
 	    continue;
 
