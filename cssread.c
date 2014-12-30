@@ -28,6 +28,8 @@ typedef enum nodetype_enum {
 typedef struct node_struct {
     nodetype typ;
 
+    int linenum; /* for debugging */
+
     /* All of these fields are optional. */
     int32_t *text;
     int textlen;
@@ -43,8 +45,8 @@ typedef struct node_struct {
 static void read_token(mincss_context *context, int skipwhite);
 static void free_token(token *tok);
 
-static node *new_node(nodetype typ);
-static node *new_node_token(token *tok);
+static node *new_node(mincss_context *context, nodetype typ);
+static node *new_node_token(mincss_context *context, token *tok);
 static void free_node(node *nod);
 static void dump_node(node *nod, int depth);
 static void node_copy_text(node *nod, token *tok);
@@ -57,10 +59,13 @@ static void read_any_top_level(mincss_context *context, node *nod);
 static void read_any_until_semiblock(mincss_context *context, node *nod);
 static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok);
 
+static void construct_stylesheet(mincss_context *context, node *nod);
+
 void mincss_read(mincss_context *context)
 {
     if (context->debug_trace == MINCSS_TRACE_LEXER) {
-        /* Just read tokens and print them until the stream is done. */
+        /* Just read tokens and print them until the stream is done. 
+	   Then stop. */
         while (1) {
             int ix;
             tokentype toktype = mincss_next_token(context);
@@ -85,12 +90,13 @@ void mincss_read(mincss_context *context)
     node *nod = read_stylesheet(context);
 
     if (context->debug_trace == MINCSS_TRACE_TREE) {
+	/* Dump out the stage-one tree, stop. */
 	dump_node(nod, 0);
 	free_node(nod);
 	return;
     }
 
-    /* ### */
+    construct_stylesheet(context, nod);
     free_node(nod);
 }
 
@@ -210,12 +216,13 @@ static void free_token(token *tok)
     free(tok);
 }
 
-static node *new_node(nodetype typ)
+static node *new_node(mincss_context *context, nodetype typ)
 {
     node *nod = (node *)malloc(sizeof(node));
     if (!nod)
 	return NULL; /*### malloc error*/
     nod->typ = typ;
+    nod->linenum = context->linenum;
     nod->text = NULL;
     nod->textlen = 0;
     nod->textdiv = 0;
@@ -225,9 +232,9 @@ static node *new_node(nodetype typ)
     return nod;
 }
 
-static node *new_node_token(token *tok)
+static node *new_node_token(mincss_context *context, token *tok)
 {
-    node *nod = new_node(nod_Token);
+    node *nod = new_node(context, nod_Token);
     nod->toktype = tok->typ;
     node_copy_text(nod, tok);
     return nod;
@@ -261,6 +268,7 @@ static void dump_indent(int val)
 
 static void dump_node(node *nod, int depth)
 {
+    printf("%02d:", nod->linenum);
     dump_indent(depth);
     switch (nod->typ) {
     case nod_None:
@@ -359,7 +367,7 @@ static void node_add_node(node *nod, node *nod2)
 */
 static node *read_stylesheet(mincss_context *context)
 {
-    node *sheetnod = new_node(nod_Stylesheet);
+    node *sheetnod = new_node(context, nod_Stylesheet);
 
     while (1) {
 	token *tok = context->nexttok;
@@ -387,7 +395,7 @@ static node *read_statement(mincss_context *context)
     if (!tok)
 	return NULL;
     if (tok->typ == tok_AtKeyword) {
-	node *nod = new_node(nod_AtRule);
+	node *nod = new_node(context, nod_AtRule);
 	node_copy_text(nod, tok);
 	read_token(context, 1);
 	read_any_until_semiblock(context, nod);
@@ -422,7 +430,7 @@ static node *read_statement(mincss_context *context)
 	   They all get stuffed into a single TopLevel node. (Unless
 	   there's no content at all, in which case we don't create a
 	   node.) */
-	node *nod = new_node(nod_TopLevel);
+	node *nod = new_node(context, nod_TopLevel);
 	while (1) {
 	    read_any_top_level(context, nod);
 	    token *tok = context->nexttok;
@@ -488,7 +496,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
 	    return;
 	    
 	case tok_Function: {
-	    node *subnod = new_node(nod_Function);
+	    node *subnod = new_node(context, nod_Function);
 	    node_copy_text(subnod, tok);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
@@ -497,7 +505,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
 	}
 
 	case tok_LParen: {
-	    node *subnod = new_node(nod_Parens);
+	    node *subnod = new_node(context, nod_Parens);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RParen);
@@ -505,7 +513,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
 	}
 
 	case tok_LBracket: {
-	    node *subnod = new_node(nod_Brackets);
+	    node *subnod = new_node(context, nod_Brackets);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RBracket);
@@ -533,7 +541,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
 
 	case tok_Semicolon:
 	default: {
-	    node *toknod = new_node_token(tok);
+	    node *toknod = new_node_token(context, tok);
 	    node_add_node(nod, toknod);
 	    read_token(context, 1);
 	}
@@ -565,7 +573,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
 	    return;
 	    
 	case tok_Function: {
-	    node *subnod = new_node(nod_Function);
+	    node *subnod = new_node(context, nod_Function);
 	    node_copy_text(subnod, tok);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
@@ -574,7 +582,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
 	}
 
 	case tok_LParen: {
-	    node *subnod = new_node(nod_Parens);
+	    node *subnod = new_node(context, nod_Parens);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RParen);
@@ -582,7 +590,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
 	}
 
 	case tok_LBracket: {
-	    node *subnod = new_node(nod_Brackets);
+	    node *subnod = new_node(context, nod_Brackets);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RBracket);
@@ -611,7 +619,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
 	    continue;
 
 	default: {
-	    node *toknod = new_node_token(tok);
+	    node *toknod = new_node_token(context, tok);
 	    node_add_node(nod, toknod);
 	    read_token(context, 1);
 	}
@@ -652,7 +660,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	    continue;
 
 	case tok_Function: {
-	    node *subnod = new_node(nod_Function);
+	    node *subnod = new_node(context, nod_Function);
 	    node_copy_text(subnod, tok);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
@@ -661,7 +669,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	}
 
 	case tok_LParen: {
-	    node *subnod = new_node(nod_Parens);
+	    node *subnod = new_node(context, nod_Parens);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RParen);
@@ -669,7 +677,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	}
 
 	case tok_LBracket: {
-	    node *subnod = new_node(nod_Brackets);
+	    node *subnod = new_node(context, nod_Brackets);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RBracket);
@@ -698,7 +706,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	    continue;
 
 	default: {
-	    node *toknod = new_node_token(tok);
+	    node *toknod = new_node_token(context, tok);
 	    node_add_node(nod, toknod);
 	    read_token(context, 1);
 	}
@@ -718,7 +726,7 @@ static node *read_block(mincss_context *context)
     }
     read_token(context, 1);
 
-    node *nod = new_node(nod_Block);
+    node *nod = new_node(context, nod_Block);
 
     while (1) {
 	tok = context->nexttok;
@@ -746,21 +754,21 @@ static node *read_block(mincss_context *context)
 	}
 
 	case tok_Semicolon: {
-	    node *subnod = new_node_token(tok);
+	    node *subnod = new_node_token(context, tok);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    continue;
 	}
 
 	case tok_AtKeyword: {
-	    node *atnod = new_node_token(tok);
+	    node *atnod = new_node_token(context, tok);
 	    node_add_node(nod, atnod);
             read_token(context, 1);
 	    continue;
 	}
 
 	case tok_Function: {
-	    node *subnod = new_node(nod_Function);
+	    node *subnod = new_node(context, nod_Function);
 	    node_copy_text(subnod, tok);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
@@ -769,7 +777,7 @@ static node *read_block(mincss_context *context)
 	}
 
 	case tok_LParen: {
-	    node *subnod = new_node(nod_Parens);
+	    node *subnod = new_node(context, nod_Parens);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RParen);
@@ -777,7 +785,7 @@ static node *read_block(mincss_context *context)
 	}
 
 	case tok_LBracket: {
-	    node *subnod = new_node(nod_Brackets);
+	    node *subnod = new_node(context, nod_Brackets);
 	    node_add_node(nod, subnod);
             read_token(context, 1);
 	    read_any_until_close(context, subnod, tok_RBracket);
@@ -802,10 +810,14 @@ static node *read_block(mincss_context *context)
 
 	default: {
 	    /* Anything else is a single "any". */
-	    node *subnod = new_node_token(tok);
+	    node *subnod = new_node_token(context, tok);
 	    node_add_node(nod, subnod);
 	    read_token(context, 1);
 	}
 	}
     }
+}
+
+static void construct_stylesheet(mincss_context *context, node *nod)
+{
 }
