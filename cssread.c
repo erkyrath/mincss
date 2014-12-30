@@ -54,7 +54,7 @@ static node *read_stylesheet(mincss_context *context);
 static node *read_statement(mincss_context *context);
 static node *read_block(mincss_context *context);
 static void read_any_top_level(mincss_context *context, node *nod);
-static int read_any_until_semiblock(mincss_context *context, node *nod);
+static void read_any_until_semiblock(mincss_context *context, node *nod);
 static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok);
 
 void mincss_read(mincss_context *context)
@@ -62,6 +62,8 @@ void mincss_read(mincss_context *context)
     read_token(context, 1);
 
     node *nod = read_stylesheet(context);
+
+    /* ### scaffolding */
     dump_node(nod, 0);
     free_node(nod);
 }
@@ -326,6 +328,9 @@ static void node_add_node(node *nod, node *nod2)
     nod->numnodes += 1;
 }
 
+/* Read in the first-stage syntax tree. This will be a Stylesheet node,
+   containing AtRule and TopLevel nodes. 
+*/
 static node *read_stylesheet(mincss_context *context)
 {
     node *sheetnod = new_node(nod_Stylesheet);
@@ -347,6 +352,9 @@ static node *read_stylesheet(mincss_context *context)
     return sheetnod;
 }
 
+/* Read one AtRule or TopLevel. A TopLevel is basically a sequence of anything
+   that isn't an AtRule. 
+*/
 static node *read_statement(mincss_context *context)
 {
     token *tok = context->nexttok;
@@ -356,12 +364,16 @@ static node *read_statement(mincss_context *context)
 	node *nod = new_node(nod_AtRule);
 	node_copy_text(nod, tok);
 	read_token(context, 1);
-	int res = read_any_until_semiblock(context, nod);
-	if (res == 1) {
-	    /* semicolon */
+	read_any_until_semiblock(context, nod);
+	tok = context->nexttok;
+	if (!tok) {
 	    return nod;
 	}
-	if (res == 2) {
+	if (tok->typ == tok_Semicolon) {
+	    read_token(context, 1);
+	    return nod;
+	}
+	if (tok->typ == tok_LBrace) {
 	    /* beginning of block */
 	    node *blocknod = read_block(context);
 	    if (!blocknod) {
@@ -373,6 +385,7 @@ static node *read_statement(mincss_context *context)
 	    return nod;
 	}
 	/* error */
+	mincss_note_error(context, "(Internal) Unexpected token after read_any_until_semiblock");
 	free_node(nod);
 	return NULL;
     }
@@ -417,8 +430,19 @@ static node *read_statement(mincss_context *context)
    An LParen or LBracket causes a balanced read, as does Function.
    Bad tokens are discarded with a warning (including a balanced
    block), unless it's an expected terminator.
+
+   We have three functions to suck in "any". They differ in their
+   termination conditions and what's considered an error. I could
+   probably combine them, but the result would be messy (messier).
 */
 
+/* Read an "any*" sequence, up until end-of-file or an AtKeyword
+   token. Appends nodes to the node passed in (which will be a
+   TopLevel).
+
+   On return, the current token is EOF, LBrace (meaning start of
+   a block), or AtKeyword.
+*/
 static void read_any_top_level(mincss_context *context, node *nod)
 {
     while (1) {
@@ -486,24 +510,28 @@ static void read_any_top_level(mincss_context *context, node *nod)
     }
 }
 
-static int read_any_until_semiblock(mincss_context *context, node *nod)
+/* Read an "any*" sequence, up until a semicolon or the beginning of a
+   block. An AtKeyword is considered an error.
+
+   On return, the current token is EOF, Semicolon, or LBrace.
+*/
+static void read_any_until_semiblock(mincss_context *context, node *nod)
 {
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
 	    mincss_note_error(context, "Incomplete @-rule");
 	    /* treat as terminated */
-	    return 1;
+	    return;
 	}
 
 	switch (tok->typ) {
 
 	case tok_Semicolon: 
-	    read_token(context, 1);
-	    return 1;
+	    return;
 	
 	case tok_LBrace:
-	    return 2;
+	    return;
 	    
 	case tok_Function: {
 	    node *subnod = new_node(nod_Function);
@@ -560,6 +588,11 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
     }
 }
 
+/* Read an "any* sequence up until a particular close token (RBracket or
+   RParen). Blocks cannot occur in this context.
+
+   On return, the current token is whatever's next.
+*/
 static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok)
 {
     while (1) {
@@ -570,7 +603,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 	}
 
 	if (tok->typ == closetok) {
-	    /* Expected close-token. */
+	    /* The expected close-token. */
 	    read_token(context, 1);
 	    return;
 	}
@@ -642,6 +675,9 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
     }
 }
 
+/* Read in a block. When called, the current token must be an LBrace.
+   On return, the current token is whatever was after the RBrace.
+*/
 static node *read_block(mincss_context *context)
 {
     token *tok = context->nexttok;
