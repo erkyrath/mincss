@@ -63,9 +63,11 @@ void mincss_read(mincss_context *context)
 
     node *nod = read_stylesheet(context);
 
-    /* ### scaffolding */
-    dump_node(nod, 0);
-    free_node(nod);
+    if (context->debug_trace == MINCSS_TRACE_TREE) {
+	dump_node(nod, 0);
+	free_node(nod);
+	return;
+    }
 }
 
 /* Read the next token, storing it in context->nexttok. Stores NULL on EOF
