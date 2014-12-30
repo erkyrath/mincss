@@ -87,27 +87,7 @@ static void perform_parse(mincss_context *context)
         return;
     }
 
-    if (context->debug_trace == MINCSS_TRACE_LEXER) {
-        /* Just read tokens and print them until the stream is done. */
-        while (1) {
-            int ix;
-            tokentype toktype = mincss_next_token(context);
-            if (toktype == tok_EOF)
-                break;
-            printf("<%s> \"", mincss_token_name(toktype));
-            for (ix=0; ix<context->tokenlen; ix++) {
-                int32_t ch = context->token[ix];
-                if (ch < 32)
-                    printf("^%c", ch+64);
-                else
-                    mincss_putchar_utf8(ch, stdout);
-            }
-            printf("\"\n");
-        }
-    }
-    else {
-        mincss_read(context);
-    }
+    mincss_read(context);
 
     free(context->token);
     context->token = NULL;
