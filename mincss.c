@@ -150,7 +150,7 @@ void mincss_note_error(mincss_context *context, char *msg)
     context->errorcount += 1;
 
     if (context->parse_error)
-        context->parse_error(msg, context->parserock);
+        context->parse_error(msg, context->linenum, context->parserock);
     else
         fprintf(stderr, "MinCSS error: %s (line %d)\n", msg, context->linenum);
 }

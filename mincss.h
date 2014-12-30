@@ -2,7 +2,7 @@
 
 typedef int (*mincss_byte_reader)(void *rock);
 typedef int32_t (*mincss_unicode_reader)(void *rock);
-typedef void (*mincss_error_handler)(char *error, void *rock);
+typedef void (*mincss_error_handler)(char *error, int linenum, void *rock);
 
 typedef struct mincss_context_struct mincss_context;
 
