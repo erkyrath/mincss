@@ -79,8 +79,9 @@ void mincss_read(mincss_context *context)
 	return;
     }
 
+    /* Prime the one-ahead token-reader... */
     read_token(context, 1);
-
+    /* And read in the stage-one tree. */
     node *nod = read_stylesheet(context);
 
     if (context->debug_trace == MINCSS_TRACE_TREE) {
@@ -88,6 +89,9 @@ void mincss_read(mincss_context *context)
 	free_node(nod);
 	return;
     }
+
+    /* ### */
+    free_node(nod);
 }
 
 /* Read the next token, storing it in context->nexttok. Stores NULL on EOF
