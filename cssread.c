@@ -498,7 +498,7 @@ static int read_any_until_semiblock(mincss_context *context, node *nod)
     while (1) {
 	token *tok = context->nexttok;
 	if (!tok) {
-	    warning(context, "Incomplete @-rule"); /*### or selector! label has to change */
+	    warning(context, "Incomplete @-rule");
 	    /* treat as terminated */
 	    return 1;
 	}
