@@ -15,13 +15,14 @@ typedef enum nodetype_enum {
     nod_None = 0,
     nod_Token = 1,
     nod_Stylesheet = 2,
-    nod_AtRule = 3,
-    nod_Ruleset = 4,
-    nod_Selector = 5,
-    nod_Block = 6,
-    nod_Parens = 7,
-    nod_Brackets = 8,
-    nod_Function = 9,
+    nod_TopLevel = 3,
+    nod_AtRule = 4,
+    nod_Ruleset = 5,
+    nod_Selector = 6,
+    nod_Block = 7,
+    nod_Parens = 8,
+    nod_Brackets = 9,
+    nod_Function = 10,
 } nodetype;
 
 typedef struct node_struct {
@@ -54,6 +55,7 @@ static void node_add_node(node *nod, node *nod2);
 static node *read_stylesheet(mincss_context *context);
 static node *read_statement(mincss_context *context);
 static node *read_block(mincss_context *context);
+static void read_any_top_level(mincss_context *context, node *nod);
 static int read_any_until_semiblock(mincss_context *context, node *nod);
 static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok);
 
@@ -250,6 +252,9 @@ static void dump_node(node *nod, int depth)
     case nod_Stylesheet:
 	printf("Stylesheet");
 	break;
+    case nod_TopLevel:
+	printf("TopLevel");
+	break;
     case nod_AtRule:
 	printf("AtRule");
 	break;
@@ -332,8 +337,11 @@ static node *read_stylesheet(mincss_context *context)
 {
     node *sheetnod = new_node(nod_Stylesheet);
 
-    while (context->nexttok) {
+    while (1) {
 	token *tok = context->nexttok;
+	if (!tok)
+	    break;
+
 	if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
 	    read_token(context, 1);
 	    continue;
@@ -376,31 +384,38 @@ static node *read_statement(mincss_context *context)
 	return NULL;
     }
     else {
-	/* This is a ruleset. */
-	node *nod = new_node(nod_Ruleset);
-	node *selnod = new_node(nod_Selector);
-	node_add_node(nod, selnod);
-	int res = read_any_until_semiblock(context, selnod);
-	if (res == 1) {
-	    warning(context, "Ruleset lacks block");
+	/* The syntax spec lets us parse a ruleset here. But we don't
+	   bother; we just parse any-and-blocks until the next
+	   AtKeyword. */
+	node *nod = new_node(nod_TopLevel);
+	while (1) {
+	    read_any_top_level(context, nod);
+	    token *tok = context->nexttok;
+	    if (!tok) {
+		break; /* end of file */
+	    }
+	    if (tok->typ == tok_AtKeyword) {
+		break; /* an @-rule is next */
+	    }
+	    if (tok->typ == tok_LBrace) {
+		node *blocknod = read_block(context);
+		if (!blocknod) {
+		    /* error, already reported */
+		    continue;
+		}
+		node_add_node(nod, blocknod);
+		continue;
+	    }
+	    warning(context, "(Internal) Unexpected token after read_any_top_level");
 	    free_node(nod);
 	    return NULL;
 	}
-	if (res == 2) {
-	    /* beginning of declaration group */
-	    /* ### scaffolding! */
-	    node *blocknod = read_block(context);
-	    if (!blocknod) {
-		/* error */
-		free_node(nod);
-		return NULL;
-	    }
-	    node_add_node(nod, blocknod);
-	    return nod;
+	if (nod->numnodes == 0) {
+	    /* empty group, don't bother returning it. */
+	    free_node(nod);
+	    return NULL;
 	}
-	/* error */
-	free_node(nod);
-	return NULL;
+	return nod;
     }
 }
 
@@ -410,6 +425,73 @@ static node *read_statement(mincss_context *context)
    Bad tokens are discarded with a warning (including a balanced
    block), unless it's an expected terminator.
 */
+
+static void read_any_top_level(mincss_context *context, node *nod)
+{
+    while (1) {
+	token *tok = context->nexttok;
+	if (!tok) {
+	    return; /* end of file */
+	}
+
+	switch (tok->typ) {
+
+	case tok_LBrace:
+	    return;
+	    
+	case tok_Function: {
+	    node *subnod = new_node(nod_Function);
+	    node_copy_text(subnod, tok);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    read_any_until_close(context, subnod, tok_RParen);
+	    continue;
+	}
+
+	case tok_LParen: {
+	    node *subnod = new_node(nod_Parens);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    read_any_until_close(context, subnod, tok_RParen);
+	    continue;
+	}
+
+	case tok_LBracket: {
+	    node *subnod = new_node(nod_Brackets);
+	    node_add_node(nod, subnod);
+            read_token(context, 1);
+	    read_any_until_close(context, subnod, tok_RBracket);
+	    continue;
+	}
+
+	case tok_CDO:
+	case tok_CDC:
+	    /* Swallow, ignore */
+            read_token(context, 1);
+	    continue;
+
+	case tok_RParen:
+	    warning(context, "Unexpected close-paren");
+            read_token(context, 1);
+	    continue;
+
+	case tok_RBracket:
+	    warning(context, "Unexpected close-bracket");
+            read_token(context, 1);
+	    continue;
+
+	case tok_AtKeyword:
+	    return;
+
+	case tok_Semicolon:
+	default: {
+	    node *toknod = new_node_token(tok);
+	    node_add_node(nod, toknod);
+	    read_token(context, 1);
+	}
+	}
+    }
+}
 
 static int read_any_until_semiblock(mincss_context *context, node *nod)
 {
@@ -571,7 +653,8 @@ static node *read_block(mincss_context *context)
 {
     token *tok = context->nexttok;
     if (!tok || tok->typ != tok_LBrace) {
-	return NULL; /* ### internal error */
+	warning(context, "(Internal) Unexpected token at read_block");
+	return NULL;
     }
     read_token(context, 1);
 
