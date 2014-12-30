@@ -7,16 +7,19 @@ static int read_stdin_byte(void *rock);
 int main(int argc, char *argv[])
 {
     int ix;
-    int lexer_debug = 0;
+    int debug_trace = MINCSS_TRACE_OFF;
 
     for (ix=1; ix<argc; ix++) {
         if (!strcmp(argv[ix], "-l")
             || !strcmp(argv[ix], "--lexer"))
-            lexer_debug = 1;
+            debug_trace = MINCSS_TRACE_LEXER;
+        if (!strcmp(argv[ix], "-t")
+            || !strcmp(argv[ix], "--tree"))
+            debug_trace = MINCSS_TRACE_TREE;
     }
 
     mincss_context *context = mincss_init();
-    mincss_set_lexer_debug(context, lexer_debug);
+    mincss_set_debug_trace(context, debug_trace);
 
     mincss_parse_bytes_utf8(context, read_stdin_byte, NULL, NULL);
 

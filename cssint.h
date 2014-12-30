@@ -8,8 +8,8 @@ struct mincss_context_struct {
     mincss_byte_reader parse_byte;
     mincss_error_handler parse_error;
 
-    /* Flag: print lexed tokens as they come in, for testing. */
-    int lexer_debug;
+    /* Print debug output and stop at a given stage. */
+    int debug_trace;
 
     /* The lexer maintains a buffer of Unicode characters.
        tokenbufsize is the available malloced size of the buffer.

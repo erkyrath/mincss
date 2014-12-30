@@ -36,8 +36,11 @@ extern void mincss_parse_unicode(mincss_context *context,
     mincss_error_handler error,
     void *rock);
 
-/* If this flag is set, the parsing process just prints tokens instead
-   of doing a full parse. (Used for debugging the lexer.)
+/* A nonzero level tells the parsing process to just print debug
+   output instead of constructing a full stylesheet.
 */
-extern void mincss_set_lexer_debug(mincss_context *context, int flag);
+#define MINCSS_TRACE_OFF (0)   /* normal operation */
+#define MINCSS_TRACE_LEXER (1) /* print lex tokens, stop */
+#define MINCSS_TRACE_TREE (2)  /* print the stage-one tree, stop */
+extern void mincss_set_debug_trace(mincss_context *context, int level);
 

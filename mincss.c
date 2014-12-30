@@ -28,9 +28,9 @@ void mincss_final(mincss_context *context)
     free(context);
 }
 
-void mincss_set_lexer_debug(mincss_context *context, int flag)
+void mincss_set_debug_trace(mincss_context *context, int level)
 {
-    context->lexer_debug = flag;
+    context->debug_trace = level;
 }
 
 void mincss_parse_unicode(mincss_context *context, 
@@ -87,7 +87,7 @@ static void perform_parse(mincss_context *context)
         return;
     }
 
-    if (context->lexer_debug) {
+    if (context->debug_trace == MINCSS_TRACE_LEXER) {
         /* Just read tokens and print them until the stream is done. */
         while (1) {
             int ix;
