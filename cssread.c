@@ -867,6 +867,10 @@ static void construct_atrule(mincss_context *context, node *nod)
 	node_note_error(context, nod, "@charset rule ignored (must be UTF-8)");
 	return;
     }
+    if (node_text_matches(nod, "import")) {
+	node_note_error(context, nod, "@import rule ignored");
+	return;
+    }
     if (node_text_matches(nod, "page")) {
 	node_note_error(context, nod, "@page rule ignored");
 	return;
@@ -880,4 +884,32 @@ static void construct_atrule(mincss_context *context, node *nod)
 
 static void construct_rulesets(mincss_context *context, node *nod)
 {
+    /* Ruleset content parses as "a bunch of stuff that isn't a block"
+       (the selector) followed by a block. */
+
+    int start = 0;
+    int blockpos = -1;
+    for (start = 0; start < nod->numnodes; start = blockpos+1) {
+	int ix;
+	for (ix = start, blockpos = -1; ix < nod->numnodes; ix++) {
+	    if (nod->nodes[ix]->typ == nod_Block) {
+		blockpos = ix;
+		break;
+	    }
+	}
+
+	if (blockpos < 0) {
+	    /* The last ruleset is missing its block. */
+	    node_note_error(context, nod->nodes[start], "Selector missing block");
+	    return;
+	}
+	if (start >= blockpos) {
+	    /* This block has no selectors. Ignore it. */
+	    node_note_error(context, nod->nodes[start], "Block missing selectors");
+	    continue;
+	}
+
+	node *blocknod = nod->nodes[blockpos];
+	/* ### and... */
+    }
 }
