@@ -367,9 +367,10 @@ static node *read_statement(mincss_context *context)
 	read_any_until_semiblock(context, nod);
 	tok = context->nexttok;
 	if (!tok) {
-	    return nod;
+	    return nod; /* end of file */
 	}
 	if (tok->typ == tok_Semicolon) {
+	    /* drop the semicolon, end the AtRule */
 	    read_token(context, 1);
 	    return nod;
 	}
@@ -382,7 +383,7 @@ static node *read_statement(mincss_context *context)
 		return NULL;
 	    }
 	    node_add_node(nod, blocknod);
-	    return nod;
+	    return nod; /* the block ends the AtRule */
 	}
 	/* error */
 	mincss_note_error(context, "(Internal) Unexpected token after read_any_until_semiblock");
@@ -391,8 +392,10 @@ static node *read_statement(mincss_context *context)
     }
     else {
 	/* The syntax spec lets us parse a ruleset here. But we don't
-	   bother; we just parse any-and-blocks until the next
-	   AtKeyword. */
+	   bother; we just parse any/blocks until the next AtKeyword. 
+	   They all get stuffed into a single TopLevel node. (Unless
+	   there's no content at all, in which case we don't create a
+	   node.) */
 	node *nod = new_node(nod_TopLevel);
 	while (1) {
 	    read_any_top_level(context, nod);
