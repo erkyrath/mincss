@@ -125,13 +125,16 @@ void mincss_putchar_utf8(int32_t val, FILE *fl)
     }
 }
 
-void mincss_note_error(mincss_context *context, char *msg)
+void mincss_note_error_line(mincss_context *context, char *msg, int linenum)
 {
+    if (linenum < 0)
+	linenum = context->linenum;
+
     context->errorcount += 1;
 
     if (context->parse_error)
-        context->parse_error(msg, context->linenum, context->parserock);
+        context->parse_error(msg, linenum, context->parserock);
     else
-        fprintf(stderr, "MinCSS error: %s (line %d)\n", msg, context->linenum);
+        fprintf(stderr, "MinCSS error: %s (line %d)\n", msg, linenum);
 }
 

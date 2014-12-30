@@ -61,7 +61,8 @@ typedef enum tokentype_enum {
 } tokentype;
 
 /* mincss.c */
-extern void mincss_note_error(mincss_context *context, char *msg);
+#define mincss_note_error(context, msg) mincss_note_error_line(context, msg, -1)
+extern void mincss_note_error_line(mincss_context *context, char *msg, int linenum);
 extern void mincss_putchar_utf8(int32_t val, FILE *fl);
 
 /* csslex.c */

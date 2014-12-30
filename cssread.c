@@ -52,6 +52,8 @@ static void dump_node(node *nod, int depth);
 static void node_copy_text(node *nod, token *tok);
 static void node_add_node(node *nod, node *nod2);
 
+#define node_note_error(context, nod, msg) mincss_note_error_line(context, msg, nod->linenum)
+
 static node *read_stylesheet(mincss_context *context);
 static node *read_statement(mincss_context *context);
 static node *read_block(mincss_context *context);
@@ -843,7 +845,7 @@ static node *read_block(mincss_context *context)
 }
 
 static void construct_atrule(mincss_context *context, node *nod);
-static void construct_toplevel(mincss_context *context, node *nod);
+static void construct_rulesets(mincss_context *context, node *nod);
 
 static void construct_stylesheet(mincss_context *context, node *nod)
 {
@@ -853,7 +855,7 @@ static void construct_stylesheet(mincss_context *context, node *nod)
 	if (subnod->typ == nod_AtRule)
 	    construct_atrule(context, subnod);
 	else if (subnod->typ == nod_TopLevel)
-	    construct_toplevel(context, subnod);
+	    construct_rulesets(context, subnod);
 	else
 	    mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
     }
@@ -862,16 +864,20 @@ static void construct_stylesheet(mincss_context *context, node *nod)
 static void construct_atrule(mincss_context *context, node *nod)
 {
     if (node_text_matches(nod, "charset")) {
-	mincss_note_error(context, "@charset rule ignored (must be UTF-8)");
+	node_note_error(context, nod, "@charset rule ignored (must be UTF-8)");
 	return;
     }
     if (node_text_matches(nod, "page")) {
-	mincss_note_error(context, "@page rule ignored");
+	node_note_error(context, nod, "@page rule ignored");
+	return;
+    }
+    if (node_text_matches(nod, "media")) {
+	/* Could parse this, but currently we don't. */
 	return;
     }
     /* Unrecognized at-rule; ignore. */
 }
 
-static void construct_toplevel(mincss_context *context, node *nod)
+static void construct_rulesets(mincss_context *context, node *nod)
 {
 }
