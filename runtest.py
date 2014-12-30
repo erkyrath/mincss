@@ -90,7 +90,7 @@ def reporterror(msg):
     print 'ERROR: %s' % (msg,)
     
 tokenlinepat = re.compile('^<([A-Za-z]*)> *"(.*)"$')
-errorlinepat = re.compile('^MinCSS error: (.*)$')
+errorlinepat = re.compile('^MinCSS error: (.*) \\(line ([0-9]+)\\)$')
 
 def lextest(input, wanttokens, wanterrors=[]):
     if type(input) is unicode:
