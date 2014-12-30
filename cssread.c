@@ -434,9 +434,11 @@ static node *read_statement(mincss_context *context)
    Bad tokens are discarded with a warning (including a balanced
    block), unless it's an expected terminator.
 
-   We have three functions to suck in "any". They differ in their
-   termination conditions and what's considered an error. I could
-   probably combine them, but the result would be messy (messier).
+   We have three functions to suck in "any". In fact they all read a
+   sequence of "any" nodes, appending them to the given node. They
+   differ in their termination conditions and what's considered an
+   error. I could probably combine them, but the result would be messy
+   (messier).
 */
 
 /* Read an "any*" sequence, up until end-of-file or an AtKeyword
