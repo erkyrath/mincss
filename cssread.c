@@ -846,6 +846,8 @@ static node *read_block(mincss_context *context)
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
+static void construct_declarations(mincss_context *context, node *nod);
+static void construct_declaration(mincss_context *context, node *nod, int start, int colon, int end);
 
 static void construct_stylesheet(mincss_context *context, node *nod)
 {
@@ -910,6 +912,48 @@ static void construct_rulesets(mincss_context *context, node *nod)
 	}
 
 	node *blocknod = nod->nodes[blockpos];
-	/* ### and... */
+	construct_declarations(context, blocknod);
     }
+}
+
+static void construct_declarations(mincss_context *context, node *nod)
+{
+    int start = 0;
+    int semipos = -1;
+    for (start = 0; start < nod->numnodes; start = semipos+1) {
+	int ix;
+	int colon = -1;
+	for (ix = start; ix < nod->numnodes; ix++) {
+	    if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Colon && colon < 0)
+		colon = ix;
+	    if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Semicolon) 
+		break;
+	}
+	semipos = ix;
+	if (semipos > start) {
+	    if (colon < 0)
+		node_note_error(context, nod->nodes[start], "Declaration lacks colon");
+	    else
+		construct_declaration(context, nod, start, colon, semipos);
+	}
+    }
+}
+
+static void construct_declaration(mincss_context *context, node *nod, int start, int colon, int end)
+{
+    if (colon-start != 1 || nod->nodes[start]->typ != nod_Token || nod->nodes[start]->toktype != tok_Ident) {
+	node_note_error(context, nod->nodes[start], "Declaration property is not an identifier");
+	return;
+    }
+    int valstart = colon+1;
+    if (end-start >= 2) {
+	node *bangnod = nod->nodes[end-2];
+	node *prionod = nod->nodes[end-1];
+	if (bangnod->typ == nod_Token && bangnod->toktype == tok_Delim && node_text_matches(bangnod, "!")
+	    && prionod->typ == nod_Token && prionod->toktype == tok_Ident && node_text_matches(prionod, "important")) {
+	    /* We parse the "!important" flag but we don't record it. */
+	    end -= 2;
+	}
+    }
+    printf("### %d len %d\n", valstart, end-valstart);
 }
