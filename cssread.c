@@ -946,14 +946,83 @@ static void construct_declaration(mincss_context *context, node *nod, int start,
 	return;
     }
     int valstart = colon+1;
+
+    /* The "!important" flag is a special case. It's always at the
+       end. */
+    int important = 0;
     if (end-start >= 2) {
 	node *bangnod = nod->nodes[end-2];
 	node *prionod = nod->nodes[end-1];
 	if (bangnod->typ == nod_Token && bangnod->toktype == tok_Delim && node_text_matches(bangnod, "!")
 	    && prionod->typ == nod_Token && prionod->toktype == tok_Ident && node_text_matches(prionod, "important")) {
-	    /* We parse the "!important" flag but we don't record it. */
 	    end -= 2;
+	    important = 1;
 	}
     }
-    printf("### %d len %d\n", valstart, end-valstart);
+
+    /* Parse out a list of values. These are normally separated only 
+       by whitespace, but a slash is possible (see the CSS spec re the
+       "font" shorthand property). We don't try to work out the value
+       type or check type validity here. We do verify the expression
+       syntax, though. */
+    int slashsep = 0;
+    int unaryop = 0;
+    int terms = 0;
+    int ix;
+    for (ix=valstart; ix<end; ix++) {
+	node *valnod = nod->nodes[ix];
+	if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !slashsep && !unaryop) {
+	    slashsep = 1;
+	    continue;
+	}
+	if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
+	    unaryop = '+';
+	    continue;
+	}
+	if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "-") && !unaryop) {
+	    unaryop = '-';
+	    continue;
+	}
+	/*### Function case: parse the arguments as a sub-list. Probably
+	  want to break out the expr list parser as its own function, sure. */
+	if (valnod->typ == nod_Token) {
+	    if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
+		printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
+		dump_node(valnod, 0);
+		terms += 1;
+		unaryop = 0;
+		slashsep = 0;
+		continue;
+	    }
+	    if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_URI) {
+		if (unaryop) {
+		    node_note_error(context, valnod, "Declaration value cannot have +/-");
+		    return; /*###*/
+		}
+		printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
+		dump_node(valnod, 0);
+		terms += 1;
+		unaryop = 0;
+		slashsep = 0;
+		continue;
+	    }
+	}
+	node_note_error(context, valnod, "Invalid declaration value");
+	return; /*###*/
+    }
+
+    if (slashsep) {
+	node_note_error(context, nod, "Unexpected trailing slash");
+	return; /*###*/
+    }
+    if (unaryop) {
+	node_note_error(context, nod, "Unexpected trailing +/-");
+	return; /*###*/
+    }
+    if (!terms) {
+	node_note_error(context, nod, "Missing declaration value");
+	return; /*###*/
+    }
+
+    /* ### all ok */
 }
