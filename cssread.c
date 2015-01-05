@@ -67,7 +67,7 @@ void mincss_read(mincss_context *context)
 {
     if (context->debug_trace == MINCSS_TRACE_LEXER) {
         /* Just read tokens and print them until the stream is done. 
-	   Then stop. */
+           Then stop. */
         while (1) {
             int ix;
             tokentype toktype = mincss_next_token(context);
@@ -83,7 +83,7 @@ void mincss_read(mincss_context *context)
             }
             printf("\"\n");
         }
-	return;
+        return;
     }
 
     /* Prime the one-ahead token-reader... */
@@ -92,10 +92,10 @@ void mincss_read(mincss_context *context)
     node *nod = read_stylesheet(context);
 
     if (context->debug_trace == MINCSS_TRACE_TREE) {
-	/* Dump out the stage-one tree, stop. */
-	dump_node(nod, 0);
-	free_node(nod);
-	return;
+        /* Dump out the stage-one tree, stop. */
+        dump_node(nod, 0);
+        free_node(nod);
+        return;
     }
 
     construct_stylesheet(context, nod);
@@ -114,8 +114,8 @@ static void read_token(mincss_context *context, int skipwhite)
     tokentype typ;
 
     if (context->nexttok) {
-	free_token(context->nexttok);
-	context->nexttok = NULL;
+        free_token(context->nexttok);
+        context->nexttok = NULL;
     }
 
     while (1) {
@@ -150,7 +150,7 @@ static void read_token(mincss_context *context, int skipwhite)
 
     case tok_Dimension:
         /* Copy the entire text; retain the division mark. */
-	div = context->tokendiv;
+        div = context->tokendiv;
         break;
 
     case tok_Comment:
@@ -197,12 +197,12 @@ static void read_token(mincss_context *context, int skipwhite)
         tok->len = len;
         tok->text = (int32_t *)malloc(sizeof(int32_t) * len);
         memcpy(tok->text, context->token+pos, sizeof(int32_t) * len);
-	tok->div = div;
+        tok->div = div;
     }
     else {
         tok->len = 0;
         tok->text = NULL;
-	tok->div = 0;
+        tok->div = 0;
     }
 
     context->nexttok = tok;
@@ -222,7 +222,7 @@ static node *new_node(mincss_context *context, nodetype typ)
 {
     node *nod = (node *)malloc(sizeof(node));
     if (!nod)
-	return NULL; /*### malloc error*/
+        return NULL; /*### malloc error*/
     nod->typ = typ;
     nod->linenum = context->linenum;
     nod->text = NULL;
@@ -247,17 +247,17 @@ static void free_node(node *nod)
     int ix;
 
     if (nod->text) {
-	free(nod->text);
-	nod->text = NULL;
+        free(nod->text);
+        nod->text = NULL;
     }
 
     if (nod->nodes) {
-	for (ix=0; ix<nod->numnodes; ix++) {
-	    free_node(nod->nodes[ix]);
-	    nod->nodes[ix] = NULL;
-	}
-	free(nod->nodes);
-	nod->nodes = NULL;
+        for (ix=0; ix<nod->numnodes; ix++) {
+            free_node(nod->nodes[ix]);
+            nod->nodes[ix] = NULL;
+        }
+        free(nod->nodes);
+        nod->nodes = NULL;
     }
 }
 
@@ -265,7 +265,7 @@ static void dump_indent(int val)
 {
     int ix;
     for (ix=0; ix<val; ix++)
-	putchar(' ');
+        putchar(' ');
 }
 
 static void dump_node(node *nod, int depth)
@@ -274,47 +274,47 @@ static void dump_node(node *nod, int depth)
     dump_indent(depth);
     switch (nod->typ) {
     case nod_None:
-	printf("None");
-	break;
+        printf("None");
+        break;
     case nod_Token:
-	printf("Token");
-	printf(" (%s)", mincss_token_name(nod->toktype));
-	break;
+        printf("Token");
+        printf(" (%s)", mincss_token_name(nod->toktype));
+        break;
     case nod_Stylesheet:
-	printf("Stylesheet");
-	break;
+        printf("Stylesheet");
+        break;
     case nod_TopLevel:
-	printf("TopLevel");
-	break;
+        printf("TopLevel");
+        break;
     case nod_AtRule:
-	printf("AtRule");
-	break;
+        printf("AtRule");
+        break;
     case nod_Ruleset:
-	printf("Ruleset");
-	break;
+        printf("Ruleset");
+        break;
     case nod_Selector:
-	printf("Selector");
-	break;
+        printf("Selector");
+        break;
     case nod_Block:
-	printf("Block");
-	break;
+        printf("Block");
+        break;
     case nod_Parens:
-	printf("Parens");
-	break;
+        printf("Parens");
+        break;
     case nod_Brackets:
-	printf("Brackets");
-	break;
+        printf("Brackets");
+        break;
     case nod_Function:
-	printf("Function");
-	break;
+        printf("Function");
+        break;
     default:
-	printf("??? node-type %d", (int)nod->typ);
-	break;
+        printf("??? node-type %d", (int)nod->typ);
+        break;
     }
 
     if (nod->text) {
-	printf(" \"");
-	int ix;
+        printf(" \"");
+        int ix;
         for (ix=0; ix<nod->textlen; ix++) {
             int32_t ch = nod->text[ix];
             if (ch < 32)
@@ -322,29 +322,29 @@ static void dump_node(node *nod, int depth)
             else
                 mincss_putchar_utf8(ch, stdout);
         }
-	printf("\"");
+        printf("\"");
     }
     if (nod->textdiv) {
-	printf(" <%d/%d>", nod->textdiv, nod->textlen);
+        printf(" <%d/%d>", nod->textdiv, nod->textlen);
     }
 
     printf("\n");
 
     if (nod->nodes) {
-	int ix;
-	for (ix=0; ix<nod->numnodes; ix++) {
-	    dump_node(nod->nodes[ix], depth+1);
-	}
+        int ix;
+        for (ix=0; ix<nod->numnodes; ix++) {
+            dump_node(nod->nodes[ix], depth+1);
+        }
     }
 }
 
 static void node_copy_text(node *nod, token *tok)
 {
     if (tok->text) {
-	nod->textlen = tok->len;
+        nod->textlen = tok->len;
         nod->text = (int32_t *)malloc(sizeof(int32_t) * tok->len);
         memcpy(nod->text, tok->text, sizeof(int32_t) * tok->len);
-	nod->textdiv = tok->div;
+        nod->textdiv = tok->div;
     }
 }
 
@@ -354,20 +354,20 @@ static int node_text_matches(node *nod, char *text)
 {
     int len = strlen(text);
     if (!text || !len)
-	return (nod->text == NULL);
+        return (nod->text == NULL);
     if (len != nod->textlen)
-	return 0;
+        return 0;
 
     int ix;
     for (ix=0; ix<len; ix++) {
-	int ch = text[ix];
-	int altch = ch;
-	if (ch >= 'A' && ch <= 'Z')
-	    altch = ch + ('a'-'A');
-	else if (ch >= 'a' && ch <= 'z')
-	    altch = ch - ('a'-'A');
-	if (nod->text[ix] != ch && nod->text[ix] != altch)
-	    return 0;
+        int ch = text[ix];
+        int altch = ch;
+        if (ch >= 'A' && ch <= 'Z')
+            altch = ch + ('a'-'A');
+        else if (ch >= 'a' && ch <= 'z')
+            altch = ch - ('a'-'A');
+        if (nod->text[ix] != ch && nod->text[ix] != altch)
+            return 0;
     }
     return 1;
 }
@@ -375,15 +375,15 @@ static int node_text_matches(node *nod, char *text)
 static void node_add_node(node *nod, node *nod2)
 {
     if (!nod->nodes) {
-	nod->nodes_size = 4;
-	nod->nodes = (node **)malloc(nod->nodes_size * sizeof(node *));
+        nod->nodes_size = 4;
+        nod->nodes = (node **)malloc(nod->nodes_size * sizeof(node *));
     }
     else if (nod->numnodes >= nod->nodes_size) {
-	nod->nodes_size *= 2;
-	nod->nodes = (node **)realloc(nod->nodes, nod->nodes_size * sizeof(node *));
+        nod->nodes_size *= 2;
+        nod->nodes = (node **)realloc(nod->nodes, nod->nodes_size * sizeof(node *));
     }
     if (!nod->nodes)
-	return; /*### malloc error*/
+        return; /*### malloc error*/
     nod->nodes[nod->numnodes] = nod2;
     nod->numnodes += 1;
 }
@@ -396,17 +396,17 @@ static node *read_stylesheet(mincss_context *context)
     node *sheetnod = new_node(context, nod_Stylesheet);
 
     while (1) {
-	token *tok = context->nexttok;
-	if (!tok)
-	    break;
+        token *tok = context->nexttok;
+        if (!tok)
+            break;
 
-	if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
-	    read_token(context, 1);
-	    continue;
-	}
-	node *nod = read_statement(context);
-	if (nod)
-	    node_add_node(sheetnod, nod);
+        if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
+            read_token(context, 1);
+            continue;
+        }
+        node *nod = read_statement(context);
+        if (nod)
+            node_add_node(sheetnod, nod);
     }
 
     return sheetnod;
@@ -419,72 +419,72 @@ static node *read_statement(mincss_context *context)
 {
     token *tok = context->nexttok;
     if (!tok)
-	return NULL;
+        return NULL;
     if (tok->typ == tok_AtKeyword) {
-	node *nod = new_node(context, nod_AtRule);
-	node_copy_text(nod, tok);
-	read_token(context, 1);
-	read_any_until_semiblock(context, nod);
-	tok = context->nexttok;
-	if (!tok) {
-	    return nod; /* end of file */
-	}
-	if (tok->typ == tok_Semicolon) {
-	    /* drop the semicolon, end the AtRule */
-	    read_token(context, 1);
-	    return nod;
-	}
-	if (tok->typ == tok_LBrace) {
-	    /* beginning of block */
-	    node *blocknod = read_block(context);
-	    if (!blocknod) {
-		/* error */
-		free_node(nod);
-		return NULL;
-	    }
-	    node_add_node(nod, blocknod);
-	    return nod; /* the block ends the AtRule */
-	}
-	/* error */
-	mincss_note_error(context, "(Internal) Unexpected token after read_any_until_semiblock");
-	free_node(nod);
-	return NULL;
+        node *nod = new_node(context, nod_AtRule);
+        node_copy_text(nod, tok);
+        read_token(context, 1);
+        read_any_until_semiblock(context, nod);
+        tok = context->nexttok;
+        if (!tok) {
+            return nod; /* end of file */
+        }
+        if (tok->typ == tok_Semicolon) {
+            /* drop the semicolon, end the AtRule */
+            read_token(context, 1);
+            return nod;
+        }
+        if (tok->typ == tok_LBrace) {
+            /* beginning of block */
+            node *blocknod = read_block(context);
+            if (!blocknod) {
+                /* error */
+                free_node(nod);
+                return NULL;
+            }
+            node_add_node(nod, blocknod);
+            return nod; /* the block ends the AtRule */
+        }
+        /* error */
+        mincss_note_error(context, "(Internal) Unexpected token after read_any_until_semiblock");
+        free_node(nod);
+        return NULL;
     }
     else {
-	/* The syntax spec lets us parse a ruleset here. But we don't
-	   bother; we just parse any/blocks until the next AtKeyword. 
-	   They all get stuffed into a single TopLevel node. (Unless
-	   there's no content at all, in which case we don't create a
-	   node.) */
-	node *nod = new_node(context, nod_TopLevel);
-	while (1) {
-	    read_any_top_level(context, nod);
-	    token *tok = context->nexttok;
-	    if (!tok) {
-		break; /* end of file */
-	    }
-	    if (tok->typ == tok_AtKeyword) {
-		break; /* an @-rule is next */
-	    }
-	    if (tok->typ == tok_LBrace) {
-		node *blocknod = read_block(context);
-		if (!blocknod) {
-		    /* error, already reported */
-		    continue;
-		}
-		node_add_node(nod, blocknod);
-		continue;
-	    }
-	    mincss_note_error(context, "(Internal) Unexpected token after read_any_top_level");
-	    free_node(nod);
-	    return NULL;
-	}
-	if (nod->numnodes == 0) {
-	    /* empty group, don't bother returning it. */
-	    free_node(nod);
-	    return NULL;
-	}
-	return nod;
+        /* The syntax spec lets us parse a ruleset here. But we don't
+           bother; we just parse any/blocks until the next AtKeyword. 
+           They all get stuffed into a single TopLevel node. (Unless
+           there's no content at all, in which case we don't create a
+           node.) */
+        node *nod = new_node(context, nod_TopLevel);
+        while (1) {
+            read_any_top_level(context, nod);
+            token *tok = context->nexttok;
+            if (!tok) {
+                break; /* end of file */
+            }
+            if (tok->typ == tok_AtKeyword) {
+                break; /* an @-rule is next */
+            }
+            if (tok->typ == tok_LBrace) {
+                node *blocknod = read_block(context);
+                if (!blocknod) {
+                    /* error, already reported */
+                    continue;
+                }
+                node_add_node(nod, blocknod);
+                continue;
+            }
+            mincss_note_error(context, "(Internal) Unexpected token after read_any_top_level");
+            free_node(nod);
+            return NULL;
+        }
+        if (nod->numnodes == 0) {
+            /* empty group, don't bother returning it. */
+            free_node(nod);
+            return NULL;
+        }
+        return nod;
     }
 }
 
@@ -511,67 +511,67 @@ static node *read_statement(mincss_context *context)
 static void read_any_top_level(mincss_context *context, node *nod)
 {
     while (1) {
-	token *tok = context->nexttok;
-	if (!tok) {
-	    return; /* end of file */
-	}
+        token *tok = context->nexttok;
+        if (!tok) {
+            return; /* end of file */
+        }
 
-	switch (tok->typ) {
+        switch (tok->typ) {
 
-	case tok_LBrace:
-	    return;
-	    
-	case tok_Function: {
-	    node *subnod = new_node(context, nod_Function);
-	    node_copy_text(subnod, tok);
-	    node_add_node(nod, subnod);
+        case tok_LBrace:
+            return;
+            
+        case tok_Function: {
+            node *subnod = new_node(context, nod_Function);
+            node_copy_text(subnod, tok);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_LParen: {
-	    node *subnod = new_node(context, nod_Parens);
-	    node_add_node(nod, subnod);
+        case tok_LParen: {
+            node *subnod = new_node(context, nod_Parens);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_LBracket: {
-	    node *subnod = new_node(context, nod_Brackets);
-	    node_add_node(nod, subnod);
+        case tok_LBracket: {
+            node *subnod = new_node(context, nod_Brackets);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RBracket);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RBracket);
+            continue;
+        }
 
-	case tok_CDO:
-	case tok_CDC:
-	    /* Swallow, ignore */
+        case tok_CDO:
+        case tok_CDC:
+            /* Swallow, ignore */
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_RParen:
-	    mincss_note_error(context, "Unexpected close-paren");
+        case tok_RParen:
+            mincss_note_error(context, "Unexpected close-paren");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_RBracket:
-	    mincss_note_error(context, "Unexpected close-bracket");
+        case tok_RBracket:
+            mincss_note_error(context, "Unexpected close-bracket");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_AtKeyword:
-	    return;
+        case tok_AtKeyword:
+            return;
 
-	case tok_Semicolon:
-	default: {
-	    node *toknod = new_node_token(context, tok);
-	    node_add_node(nod, toknod);
-	    read_token(context, 1);
-	}
-	}
+        case tok_Semicolon:
+        default: {
+            node *toknod = new_node_token(context, tok);
+            node_add_node(nod, toknod);
+            read_token(context, 1);
+        }
+        }
     }
 }
 
@@ -583,73 +583,73 @@ static void read_any_top_level(mincss_context *context, node *nod)
 static void read_any_until_semiblock(mincss_context *context, node *nod)
 {
     while (1) {
-	token *tok = context->nexttok;
-	if (!tok) {
-	    mincss_note_error(context, "Incomplete @-rule");
-	    /* treat as terminated */
-	    return;
-	}
+        token *tok = context->nexttok;
+        if (!tok) {
+            mincss_note_error(context, "Incomplete @-rule");
+            /* treat as terminated */
+            return;
+        }
 
-	switch (tok->typ) {
+        switch (tok->typ) {
 
-	case tok_Semicolon: 
-	    return;
-	
-	case tok_LBrace:
-	    return;
-	    
-	case tok_Function: {
-	    node *subnod = new_node(context, nod_Function);
-	    node_copy_text(subnod, tok);
-	    node_add_node(nod, subnod);
+        case tok_Semicolon: 
+            return;
+        
+        case tok_LBrace:
+            return;
+            
+        case tok_Function: {
+            node *subnod = new_node(context, nod_Function);
+            node_copy_text(subnod, tok);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_LParen: {
-	    node *subnod = new_node(context, nod_Parens);
-	    node_add_node(nod, subnod);
+        case tok_LParen: {
+            node *subnod = new_node(context, nod_Parens);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_LBracket: {
-	    node *subnod = new_node(context, nod_Brackets);
-	    node_add_node(nod, subnod);
+        case tok_LBracket: {
+            node *subnod = new_node(context, nod_Brackets);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RBracket);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RBracket);
+            continue;
+        }
 
-	case tok_CDO:
-	case tok_CDC:
-	    mincss_note_error(context, "HTML comment delimiters not allowed inside @-rule");
+        case tok_CDO:
+        case tok_CDC:
+            mincss_note_error(context, "HTML comment delimiters not allowed inside @-rule");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_RParen:
-	    mincss_note_error(context, "Unexpected close-paren inside @-rule");
+        case tok_RParen:
+            mincss_note_error(context, "Unexpected close-paren inside @-rule");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_RBracket:
-	    mincss_note_error(context, "Unexpected close-bracket inside @-rule");
+        case tok_RBracket:
+            mincss_note_error(context, "Unexpected close-bracket inside @-rule");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_AtKeyword:
-	    mincss_note_error(context, "Unexpected @-keyword inside @-rule");
+        case tok_AtKeyword:
+            mincss_note_error(context, "Unexpected @-keyword inside @-rule");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	default: {
-	    node *toknod = new_node_token(context, tok);
-	    node_add_node(nod, toknod);
-	    read_token(context, 1);
-	}
-	}
+        default: {
+            node *toknod = new_node_token(context, tok);
+            node_add_node(nod, toknod);
+            read_token(context, 1);
+        }
+        }
     }
 }
 
@@ -661,82 +661,82 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
 static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok)
 {
     while (1) {
-	token *tok = context->nexttok;
-	if (!tok) {
-	    mincss_note_error(context, "Missing close-delimiter");
-	    return;
-	}
+        token *tok = context->nexttok;
+        if (!tok) {
+            mincss_note_error(context, "Missing close-delimiter");
+            return;
+        }
 
-	if (tok->typ == closetok) {
-	    /* The expected close-token. */
-	    read_token(context, 1);
-	    return;
-	}
-
-	switch (tok->typ) {
-
-	case tok_Semicolon: 
-	    mincss_note_error(context, "Unexpected semicolon");
-	    read_token(context, 1);
-	    continue;
-	    
-	case tok_LBrace:
-	    mincss_note_error(context, "Unexpected block");
-	    read_block(context);
-	    continue;
-
-	case tok_Function: {
-	    node *subnod = new_node(context, nod_Function);
-	    node_copy_text(subnod, tok);
-	    node_add_node(nod, subnod);
+        if (tok->typ == closetok) {
+            /* The expected close-token. */
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            return;
+        }
 
-	case tok_LParen: {
-	    node *subnod = new_node(context, nod_Parens);
-	    node_add_node(nod, subnod);
+        switch (tok->typ) {
+
+        case tok_Semicolon: 
+            mincss_note_error(context, "Unexpected semicolon");
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            continue;
+            
+        case tok_LBrace:
+            mincss_note_error(context, "Unexpected block");
+            read_block(context);
+            continue;
 
-	case tok_LBracket: {
-	    node *subnod = new_node(context, nod_Brackets);
-	    node_add_node(nod, subnod);
+        case tok_Function: {
+            node *subnod = new_node(context, nod_Function);
+            node_copy_text(subnod, tok);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RBracket);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_CDO:
-	case tok_CDC:
-	    mincss_note_error(context, "HTML comment delimiters not allowed inside brackets");
+        case tok_LParen: {
+            node *subnod = new_node(context, nod_Parens);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    continue;
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_RParen:
-	    mincss_note_error(context, "Unexpected close-paren inside brackets");
+        case tok_LBracket: {
+            node *subnod = new_node(context, nod_Brackets);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    continue;
+            read_any_until_close(context, subnod, tok_RBracket);
+            continue;
+        }
 
-	case tok_RBracket:
-	    mincss_note_error(context, "Unexpected close-bracket inside brackets");
+        case tok_CDO:
+        case tok_CDC:
+            mincss_note_error(context, "HTML comment delimiters not allowed inside brackets");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_AtKeyword:
-	    mincss_note_error(context, "Unexpected @-keyword inside brackets");
+        case tok_RParen:
+            mincss_note_error(context, "Unexpected close-paren inside brackets");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	default: {
-	    node *toknod = new_node_token(context, tok);
-	    node_add_node(nod, toknod);
-	    read_token(context, 1);
-	}
-	}
+        case tok_RBracket:
+            mincss_note_error(context, "Unexpected close-bracket inside brackets");
+            read_token(context, 1);
+            continue;
+
+        case tok_AtKeyword:
+            mincss_note_error(context, "Unexpected @-keyword inside brackets");
+            read_token(context, 1);
+            continue;
+
+        default: {
+            node *toknod = new_node_token(context, tok);
+            node_add_node(nod, toknod);
+            read_token(context, 1);
+        }
+        }
     }
 }
 
@@ -747,100 +747,100 @@ static node *read_block(mincss_context *context)
 {
     token *tok = context->nexttok;
     if (!tok || tok->typ != tok_LBrace) {
-	mincss_note_error(context, "(Internal) Unexpected token at read_block");
-	return NULL;
+        mincss_note_error(context, "(Internal) Unexpected token at read_block");
+        return NULL;
     }
     read_token(context, 1);
 
     node *nod = new_node(context, nod_Block);
 
     while (1) {
-	tok = context->nexttok;
-	if (!tok) {
-	    mincss_note_error(context, "Unexpected end of block");
-	    return nod;
-	}
+        tok = context->nexttok;
+        if (!tok) {
+            mincss_note_error(context, "Unexpected end of block");
+            return nod;
+        }
 
-	switch (tok->typ) {
+        switch (tok->typ) {
 
-	case tok_RBrace:
-	    /* Done */
-	    read_token(context, 1);
-	    return nod;
-
-	case tok_LBrace: {
-	    /* Sub-block */
-	    node *blocknod = read_block(context);
-	    if (!blocknod) {
-		/* error, already reported */
-		continue;
-	    }
-	    node_add_node(nod, blocknod);
-	    continue;
-	}
-
-	case tok_Semicolon: {
-	    node *subnod = new_node_token(context, tok);
-	    node_add_node(nod, subnod);
+        case tok_RBrace:
+            /* Done */
             read_token(context, 1);
-	    continue;
-	}
+            return nod;
 
-	case tok_AtKeyword: {
-	    node *atnod = new_node_token(context, tok);
-	    node_add_node(nod, atnod);
+        case tok_LBrace: {
+            /* Sub-block */
+            node *blocknod = read_block(context);
+            if (!blocknod) {
+                /* error, already reported */
+                continue;
+            }
+            node_add_node(nod, blocknod);
+            continue;
+        }
+
+        case tok_Semicolon: {
+            node *subnod = new_node_token(context, tok);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    continue;
-	}
+            continue;
+        }
 
-	case tok_Function: {
-	    node *subnod = new_node(context, nod_Function);
-	    node_copy_text(subnod, tok);
-	    node_add_node(nod, subnod);
+        case tok_AtKeyword: {
+            node *atnod = new_node_token(context, tok);
+            node_add_node(nod, atnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            continue;
+        }
 
-	case tok_LParen: {
-	    node *subnod = new_node(context, nod_Parens);
-	    node_add_node(nod, subnod);
+        case tok_Function: {
+            node *subnod = new_node(context, nod_Function);
+            node_copy_text(subnod, tok);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RParen);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_LBracket: {
-	    node *subnod = new_node(context, nod_Brackets);
-	    node_add_node(nod, subnod);
+        case tok_LParen: {
+            node *subnod = new_node(context, nod_Parens);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    read_any_until_close(context, subnod, tok_RBracket);
-	    continue;
-	}
+            read_any_until_close(context, subnod, tok_RParen);
+            continue;
+        }
 
-	case tok_CDO:
-	case tok_CDC:
-	    mincss_note_error(context, "HTML comment delimiters not allowed inside block");
+        case tok_LBracket: {
+            node *subnod = new_node(context, nod_Brackets);
+            node_add_node(nod, subnod);
             read_token(context, 1);
-	    continue;
+            read_any_until_close(context, subnod, tok_RBracket);
+            continue;
+        }
 
-	case tok_RParen:
-	    mincss_note_error(context, "Unexpected close-paren inside block");
+        case tok_CDO:
+        case tok_CDC:
+            mincss_note_error(context, "HTML comment delimiters not allowed inside block");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	case tok_RBracket:
-	    mincss_note_error(context, "Unexpected close-bracket inside block");
+        case tok_RParen:
+            mincss_note_error(context, "Unexpected close-paren inside block");
             read_token(context, 1);
-	    continue;
+            continue;
 
-	default: {
-	    /* Anything else is a single "any". */
-	    node *subnod = new_node_token(context, tok);
-	    node_add_node(nod, subnod);
-	    read_token(context, 1);
-	}
-	}
+        case tok_RBracket:
+            mincss_note_error(context, "Unexpected close-bracket inside block");
+            read_token(context, 1);
+            continue;
+
+        default: {
+            /* Anything else is a single "any". */
+            node *subnod = new_node_token(context, tok);
+            node_add_node(nod, subnod);
+            read_token(context, 1);
+        }
+        }
     }
 }
 
@@ -853,33 +853,33 @@ static void construct_stylesheet(mincss_context *context, node *nod)
 {
     int ix;
     for (ix=0; ix<nod->numnodes; ix++) {
-	node *subnod = nod->nodes[ix];
-	if (subnod->typ == nod_AtRule)
-	    construct_atrule(context, subnod);
-	else if (subnod->typ == nod_TopLevel)
-	    construct_rulesets(context, subnod);
-	else
-	    mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
+        node *subnod = nod->nodes[ix];
+        if (subnod->typ == nod_AtRule)
+            construct_atrule(context, subnod);
+        else if (subnod->typ == nod_TopLevel)
+            construct_rulesets(context, subnod);
+        else
+            mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
     }
 }
 
 static void construct_atrule(mincss_context *context, node *nod)
 {
     if (node_text_matches(nod, "charset")) {
-	node_note_error(context, nod, "@charset rule ignored (must be UTF-8)");
-	return;
+        node_note_error(context, nod, "@charset rule ignored (must be UTF-8)");
+        return;
     }
     if (node_text_matches(nod, "import")) {
-	node_note_error(context, nod, "@import rule ignored");
-	return;
+        node_note_error(context, nod, "@import rule ignored");
+        return;
     }
     if (node_text_matches(nod, "page")) {
-	node_note_error(context, nod, "@page rule ignored");
-	return;
+        node_note_error(context, nod, "@page rule ignored");
+        return;
     }
     if (node_text_matches(nod, "media")) {
-	/* Could parse this, but currently we don't. */
-	return;
+        /* Could parse this, but currently we don't. */
+        return;
     }
     /* Unrecognized at-rule; ignore. */
 }
@@ -892,27 +892,27 @@ static void construct_rulesets(mincss_context *context, node *nod)
     int start = 0;
     int blockpos = -1;
     for (start = 0; start < nod->numnodes; start = blockpos+1) {
-	int ix;
-	for (ix = start, blockpos = -1; ix < nod->numnodes; ix++) {
-	    if (nod->nodes[ix]->typ == nod_Block) {
-		blockpos = ix;
-		break;
-	    }
-	}
+        int ix;
+        for (ix = start, blockpos = -1; ix < nod->numnodes; ix++) {
+            if (nod->nodes[ix]->typ == nod_Block) {
+                blockpos = ix;
+                break;
+            }
+        }
 
-	if (blockpos < 0) {
-	    /* The last ruleset is missing its block. */
-	    node_note_error(context, nod->nodes[start], "Selector missing block");
-	    return;
-	}
-	if (start >= blockpos) {
-	    /* This block has no selectors. Ignore it. */
-	    node_note_error(context, nod->nodes[start], "Block missing selectors");
-	    continue;
-	}
+        if (blockpos < 0) {
+            /* The last ruleset is missing its block. */
+            node_note_error(context, nod->nodes[start], "Selector missing block");
+            return;
+        }
+        if (start >= blockpos) {
+            /* This block has no selectors. Ignore it. */
+            node_note_error(context, nod->nodes[start], "Block missing selectors");
+            continue;
+        }
 
-	node *blocknod = nod->nodes[blockpos];
-	construct_declarations(context, blocknod);
+        node *blocknod = nod->nodes[blockpos];
+        construct_declarations(context, blocknod);
     }
 }
 
@@ -921,29 +921,29 @@ static void construct_declarations(mincss_context *context, node *nod)
     int start = 0;
     int semipos = -1;
     for (start = 0; start < nod->numnodes; start = semipos+1) {
-	int ix;
-	int colon = -1;
-	for (ix = start; ix < nod->numnodes; ix++) {
-	    if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Colon && colon < 0)
-		colon = ix;
-	    if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Semicolon) 
-		break;
-	}
-	semipos = ix;
-	if (semipos > start) {
-	    if (colon < 0)
-		node_note_error(context, nod->nodes[start], "Declaration lacks colon");
-	    else
-		construct_declaration(context, nod, start, colon, semipos);
-	}
+        int ix;
+        int colon = -1;
+        for (ix = start; ix < nod->numnodes; ix++) {
+            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Colon && colon < 0)
+                colon = ix;
+            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Semicolon) 
+                break;
+        }
+        semipos = ix;
+        if (semipos > start) {
+            if (colon < 0)
+                node_note_error(context, nod->nodes[start], "Declaration lacks colon");
+            else
+                construct_declaration(context, nod, start, colon, semipos);
+        }
     }
 }
 
 static void construct_declaration(mincss_context *context, node *nod, int start, int colon, int end)
 {
     if (colon-start != 1 || nod->nodes[start]->typ != nod_Token || nod->nodes[start]->toktype != tok_Ident) {
-	node_note_error(context, nod->nodes[start], "Declaration property is not an identifier");
-	return;
+        node_note_error(context, nod->nodes[start], "Declaration property is not an identifier");
+        return;
     }
     int valstart = colon+1;
 
@@ -951,13 +951,13 @@ static void construct_declaration(mincss_context *context, node *nod, int start,
        end. */
     int important = 0;
     if (end-start >= 2) {
-	node *bangnod = nod->nodes[end-2];
-	node *prionod = nod->nodes[end-1];
-	if (bangnod->typ == nod_Token && bangnod->toktype == tok_Delim && node_text_matches(bangnod, "!")
-	    && prionod->typ == nod_Token && prionod->toktype == tok_Ident && node_text_matches(prionod, "important")) {
-	    end -= 2;
-	    important = 1;
-	}
+        node *bangnod = nod->nodes[end-2];
+        node *prionod = nod->nodes[end-1];
+        if (bangnod->typ == nod_Token && bangnod->toktype == tok_Delim && node_text_matches(bangnod, "!")
+            && prionod->typ == nod_Token && prionod->toktype == tok_Ident && node_text_matches(prionod, "important")) {
+            end -= 2;
+            important = 1;
+        }
     }
 
     /* Parse out a list of values. These are normally separated only 
@@ -970,58 +970,58 @@ static void construct_declaration(mincss_context *context, node *nod, int start,
     int terms = 0;
     int ix;
     for (ix=valstart; ix<end; ix++) {
-	node *valnod = nod->nodes[ix];
-	if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !slashsep && !unaryop) {
-	    slashsep = 1;
-	    continue;
-	}
-	if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
-	    unaryop = '+';
-	    continue;
-	}
-	if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "-") && !unaryop) {
-	    unaryop = '-';
-	    continue;
-	}
-	/*### Function case: parse the arguments as a sub-list. Probably
-	  want to break out the expr list parser as its own function, sure. */
-	if (valnod->typ == nod_Token) {
-	    if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
-		printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
-		dump_node(valnod, 0);
-		terms += 1;
-		unaryop = 0;
-		slashsep = 0;
-		continue;
-	    }
-	    if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_URI) {
-		if (unaryop) {
-		    node_note_error(context, valnod, "Declaration value cannot have +/-");
-		    return; /*###*/
-		}
-		printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
-		dump_node(valnod, 0);
-		terms += 1;
-		unaryop = 0;
-		slashsep = 0;
-		continue;
-	    }
-	}
-	node_note_error(context, valnod, "Invalid declaration value");
-	return; /*###*/
+        node *valnod = nod->nodes[ix];
+        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !slashsep && !unaryop) {
+            slashsep = 1;
+            continue;
+        }
+        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
+            unaryop = '+';
+            continue;
+        }
+        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "-") && !unaryop) {
+            unaryop = '-';
+            continue;
+        }
+        /*### Function case: parse the arguments as a sub-list. Probably
+          want to break out the expr list parser as its own function, sure. */
+        if (valnod->typ == nod_Token) {
+            if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
+                printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
+                dump_node(valnod, 0);
+                terms += 1;
+                unaryop = 0;
+                slashsep = 0;
+                continue;
+            }
+            if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_URI) {
+                if (unaryop) {
+                    node_note_error(context, valnod, "Declaration value cannot have +/-");
+                    return; /*###*/
+                }
+                printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
+                dump_node(valnod, 0);
+                terms += 1;
+                unaryop = 0;
+                slashsep = 0;
+                continue;
+            }
+        }
+        node_note_error(context, valnod, "Invalid declaration value");
+        return; /*###*/
     }
 
     if (slashsep) {
-	node_note_error(context, nod, "Unexpected trailing slash");
-	return; /*###*/
+        node_note_error(context, nod, "Unexpected trailing slash");
+        return; /*###*/
     }
     if (unaryop) {
-	node_note_error(context, nod, "Unexpected trailing +/-");
-	return; /*###*/
+        node_note_error(context, nod, "Unexpected trailing +/-");
+        return; /*###*/
     }
     if (!terms) {
-	node_note_error(context, nod, "Missing declaration value");
-	return; /*###*/
+        node_note_error(context, nod, "Missing declaration value");
+        return; /*###*/
     }
 
     /* ### all ok */

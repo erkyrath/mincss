@@ -128,7 +128,7 @@ void mincss_putchar_utf8(int32_t val, FILE *fl)
 void mincss_note_error_line(mincss_context *context, char *msg, int linenum)
 {
     if (linenum < 0)
-	linenum = context->linenum;
+        linenum = context->linenum;
 
     context->errorcount += 1;
 
