@@ -456,6 +456,42 @@ Stylesheet
   Block
   Block
 '''),
+    (' @foo; @bar {} @baz 1 2 3 {} @quux x ; ',
+     '''
+Stylesheet
+ AtRule "foo"
+ AtRule "bar"
+  Block
+ AtRule "baz"
+  Token (Number) "1"
+  Token (Space)
+  Token (Number) "2"
+  Token (Space)
+  Token (Number) "3"
+  Token (Space)
+  Block
+ AtRule "quux"
+  Token (Ident) "x"
+  Token (Space)
+'''),
+    (' @foo ; prop {} prop2 { 1 } @baz{}{}',
+     '''
+Stylesheet
+ AtRule "foo"
+ TopLevel
+  Token (Ident) "prop"
+  Token (Space)
+  Block
+  Token (Ident) "prop2"
+  Token (Space)
+  Block
+   Token (Number) "1"
+   Token (Space)
+ AtRule "baz"
+  Block
+ TopLevel
+  Block
+'''),
     ]
 
 
