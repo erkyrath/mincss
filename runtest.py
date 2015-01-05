@@ -550,6 +550,27 @@ Stylesheet
 ''',
      [ "Unexpected end of block" ]),
     
+    ('x(1) z[2] ',
+     '''
+Stylesheet
+ TopLevel
+  Function "x"
+   Token (Number) "1"
+  Token (Space)
+  Token (Ident) "z"
+  Brackets
+   Token (Number) "2"
+  Token (Space)
+'''),
+    
+    (')@foo;]@bar;',
+     '''
+Stylesheet
+ AtRule "foo"
+ AtRule "bar"
+''',
+     [ "Unexpected close-paren", "Unexpected close-bracket" ]),
+    
     ]
 
 
