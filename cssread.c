@@ -35,7 +35,7 @@ typedef struct node_struct {
     int nodes_size;
 } node;
 
-static void read_token(mincss_context *context, int skipwhite);
+static void read_token(mincss_context *context);
 
 static node *new_node(mincss_context *context, nodetype typ);
 static node *new_node_token(mincss_context *context, token *tok);
@@ -79,7 +79,7 @@ void mincss_read(mincss_context *context)
     }
 
     /* Prime the one-ahead token-reader... */
-    read_token(context, 1);
+    read_token(context);
     /* And read in the stage-one tree. */
     node *nod = read_stylesheet(context);
 
@@ -95,10 +95,9 @@ void mincss_read(mincss_context *context)
 }
 
 /* Read the next token, storing it in context->nexttok.
-   Optionally skip over whitespace and comments.
-   ### I may have to change this to "skip comments but not whitespace."
+   We skip over comments.
  */
-static void read_token(mincss_context *context, int skipwhite)
+static void read_token(mincss_context *context)
 {
     tokentype typ;
 
@@ -117,9 +116,9 @@ static void read_token(mincss_context *context, int skipwhite)
         typ = mincss_next_token(context);
         if (typ == tok_EOF)
             return;
-        if (typ != tok_Comment && typ != tok_Space)
-            break;
-        if (!skipwhite)
+        /* if (ttyp == tok_Space && skipwhite)
+            continue; */
+        if (typ != tok_Comment)
             break;
     }
 
@@ -195,6 +194,13 @@ static void read_token(mincss_context *context, int skipwhite)
         tok->text = NULL;
         tok->div = 0;
     }
+}
+
+/* If the current token is whitespace, read more tokens until it's not. */
+static void read_token_skipspace(mincss_context *context)
+{
+    while (context->nexttok.typ == tok_Space)
+        read_token(context);
 }
 
 static node *new_node(mincss_context *context, nodetype typ)
@@ -382,9 +388,17 @@ static node *read_stylesheet(mincss_context *context)
             break;
 
         if (toktyp == tok_CDO || toktyp == tok_CDC) {
-            read_token(context, 1);
+            /* Comment delimiters are ignored at the top level. */
+            read_token(context);
             continue;
         }
+
+        if (toktyp == tok_Space) {
+            /* We also ignore whitespace between statements. */
+            read_token(context);
+            continue;
+        }
+
         node *nod = read_statement(context);
         if (nod)
             node_add_node(sheetnod, nod);
@@ -401,10 +415,12 @@ static node *read_statement(mincss_context *context)
     tokentype toktyp = context->nexttok.typ;
     if (toktyp == tok_EOF)
         return NULL;
+
     if (toktyp == tok_AtKeyword) {
         node *nod = new_node(context, nod_AtRule);
         node_copy_text(nod, &context->nexttok);
-        read_token(context, 1);
+        read_token(context);
+        read_token_skipspace(context);
         read_any_until_semiblock(context, nod);
         toktyp = context->nexttok.typ;
         if (toktyp == tok_EOF) {
@@ -412,7 +428,8 @@ static node *read_statement(mincss_context *context)
         }
         if (toktyp == tok_Semicolon) {
             /* drop the semicolon, end the AtRule */
-            read_token(context, 1);
+            read_token(context);
+            read_token_skipspace(context);
             return nod;
         }
         if (toktyp == tok_LBrace) {
@@ -506,7 +523,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
             node *subnod = new_node(context, nod_Function);
             node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -514,7 +531,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
         case tok_LParen: {
             node *subnod = new_node(context, nod_Parens);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -522,7 +539,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
         case tok_LBracket: {
             node *subnod = new_node(context, nod_Brackets);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RBracket);
             continue;
         }
@@ -530,17 +547,17 @@ static void read_any_top_level(mincss_context *context, node *nod)
         case tok_CDO:
         case tok_CDC:
             /* Swallow, ignore */
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RParen:
             mincss_note_error(context, "Unexpected close-paren");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RBracket:
             mincss_note_error(context, "Unexpected close-bracket");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_AtKeyword:
@@ -550,7 +567,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
         default: {
             node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
-            read_token(context, 1);
+            read_token(context);
         }
         }
     }
@@ -583,7 +600,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
             node *subnod = new_node(context, nod_Function);
             node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -591,7 +608,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
         case tok_LParen: {
             node *subnod = new_node(context, nod_Parens);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -599,7 +616,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
         case tok_LBracket: {
             node *subnod = new_node(context, nod_Brackets);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RBracket);
             continue;
         }
@@ -607,28 +624,28 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
         case tok_CDO:
         case tok_CDC:
             mincss_note_error(context, "HTML comment delimiters not allowed inside @-rule");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RParen:
             mincss_note_error(context, "Unexpected close-paren inside @-rule");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RBracket:
             mincss_note_error(context, "Unexpected close-bracket inside @-rule");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_AtKeyword:
             mincss_note_error(context, "Unexpected @-keyword inside @-rule");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         default: {
             node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
-            read_token(context, 1);
+            read_token(context);
         }
         }
     }
@@ -650,7 +667,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 
         if (toktyp == closetok) {
             /* The expected close-token. */
-            read_token(context, 1);
+            read_token(context);
             return;
         }
 
@@ -658,7 +675,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 
         case tok_Semicolon: 
             mincss_note_error(context, "Unexpected semicolon");
-            read_token(context, 1);
+            read_token(context);
             continue;
             
         case tok_LBrace:
@@ -670,7 +687,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
             node *subnod = new_node(context, nod_Function);
             node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -678,7 +695,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
         case tok_LParen: {
             node *subnod = new_node(context, nod_Parens);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -686,7 +703,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
         case tok_LBracket: {
             node *subnod = new_node(context, nod_Brackets);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RBracket);
             continue;
         }
@@ -694,28 +711,28 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
         case tok_CDO:
         case tok_CDC:
             mincss_note_error(context, "HTML comment delimiters not allowed inside brackets");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RParen:
             mincss_note_error(context, "Unexpected close-paren inside brackets");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RBracket:
             mincss_note_error(context, "Unexpected close-bracket inside brackets");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_AtKeyword:
             mincss_note_error(context, "Unexpected @-keyword inside brackets");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         default: {
             node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
-            read_token(context, 1);
+            read_token(context);
         }
         }
     }
@@ -731,7 +748,7 @@ static node *read_block(mincss_context *context)
         mincss_note_error(context, "(Internal) Unexpected token at read_block");
         return NULL;
     }
-    read_token(context, 1);
+    read_token(context);
 
     node *nod = new_node(context, nod_Block);
 
@@ -746,7 +763,8 @@ static node *read_block(mincss_context *context)
 
         case tok_RBrace:
             /* Done */
-            read_token(context, 1);
+            read_token(context);
+            read_token_skipspace(context);
             return nod;
 
         case tok_LBrace: {
@@ -763,14 +781,14 @@ static node *read_block(mincss_context *context)
         case tok_Semicolon: {
             node *subnod = new_node_token(context, &context->nexttok);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             continue;
         }
 
         case tok_AtKeyword: {
             node *atnod = new_node_token(context, &context->nexttok);
             node_add_node(nod, atnod);
-            read_token(context, 1);
+            read_token(context);
             continue;
         }
 
@@ -778,7 +796,7 @@ static node *read_block(mincss_context *context)
             node *subnod = new_node(context, nod_Function);
             node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -786,7 +804,7 @@ static node *read_block(mincss_context *context)
         case tok_LParen: {
             node *subnod = new_node(context, nod_Parens);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RParen);
             continue;
         }
@@ -794,7 +812,7 @@ static node *read_block(mincss_context *context)
         case tok_LBracket: {
             node *subnod = new_node(context, nod_Brackets);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
             read_any_until_close(context, subnod, tok_RBracket);
             continue;
         }
@@ -802,24 +820,24 @@ static node *read_block(mincss_context *context)
         case tok_CDO:
         case tok_CDC:
             mincss_note_error(context, "HTML comment delimiters not allowed inside block");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RParen:
             mincss_note_error(context, "Unexpected close-paren inside block");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         case tok_RBracket:
             mincss_note_error(context, "Unexpected close-bracket inside block");
-            read_token(context, 1);
+            read_token(context);
             continue;
 
         default: {
             /* Anything else is a single "any". */
             node *subnod = new_node_token(context, &context->nexttok);
             node_add_node(nod, subnod);
-            read_token(context, 1);
+            read_token(context);
         }
         }
     }
