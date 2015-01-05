@@ -4,13 +4,6 @@
 #include "mincss.h"
 #include "cssint.h"
 
-typedef struct token_struct {
-    tokentype typ;
-    int32_t *text;
-    int len;
-    int div;
-} token;
-
 typedef enum nodetype_enum {
     nod_None = 0,
     nod_Token = 1,
@@ -43,7 +36,6 @@ typedef struct node_struct {
 } node;
 
 static void read_token(mincss_context *context, int skipwhite);
-static void free_token(token *tok);
 
 static node *new_node(mincss_context *context, nodetype typ);
 static node *new_node_token(mincss_context *context, token *tok);
@@ -102,22 +94,25 @@ void mincss_read(mincss_context *context)
     free_node(nod);
 }
 
-/* Read the next token, storing it in context->nexttok. Stores NULL on EOF
-   (rather than an EOF token). 
+/* Read the next token, storing it in context->nexttok.
    Optionally skip over whitespace and comments.
    ### I may have to change this to "skip comments but not whitespace."
-   ### If we wind up never having more than one allocated, I may blow off
-       the struct and just keep data in the context.
  */
 static void read_token(mincss_context *context, int skipwhite)
 {
     tokentype typ;
 
-    if (context->nexttok) {
-        free_token(context->nexttok);
-        context->nexttok = NULL;
+    /* Free the current nexttok contents. */
+    token *tok = &(context->nexttok);
+    tok->typ = tok_EOF;
+    if (tok->text) {
+        free(tok->text);
+        tok->text = NULL;
     }
+    tok->len = 0;
+    tok->div = 0;
 
+    /* Run forwards to the next meaningful token. */
     while (1) {
         typ = mincss_next_token(context);
         if (typ == tok_EOF)
@@ -127,10 +122,6 @@ static void read_token(mincss_context *context, int skipwhite)
         if (!skipwhite)
             break;
     }
-
-    token *tok = (token *)malloc(sizeof(token));
-    if (!tok)
-        return;
 
     /* We're going to copy out the content part of the token string. Skip
        string delimiters, the @ in AtKeyword, etc. If the content length
@@ -204,18 +195,6 @@ static void read_token(mincss_context *context, int skipwhite)
         tok->text = NULL;
         tok->div = 0;
     }
-
-    context->nexttok = tok;
-}
-
-static void free_token(token *tok)
-{
-    if (tok->text) {
-        free(tok->text);
-        tok->text = NULL;
-    }
-    tok->len = 0;
-    free(tok);
 }
 
 static node *new_node(mincss_context *context, nodetype typ)
@@ -236,6 +215,8 @@ static node *new_node(mincss_context *context, nodetype typ)
 
 static node *new_node_token(mincss_context *context, token *tok)
 {
+    /* This is always called with tok = &context->nexttok, so I could
+       drop the second argument, really. */
     node *nod = new_node(context, nod_Token);
     nod->toktype = tok->typ;
     node_copy_text(nod, tok);
@@ -396,11 +377,11 @@ static node *read_stylesheet(mincss_context *context)
     node *sheetnod = new_node(context, nod_Stylesheet);
 
     while (1) {
-        token *tok = context->nexttok;
-        if (!tok)
+        tokentype toktyp = context->nexttok.typ;
+        if (toktyp == tok_EOF)
             break;
 
-        if (tok->typ == tok_CDO || tok->typ == tok_CDC) {
+        if (toktyp == tok_CDO || toktyp == tok_CDC) {
             read_token(context, 1);
             continue;
         }
@@ -417,24 +398,24 @@ static node *read_stylesheet(mincss_context *context)
 */
 static node *read_statement(mincss_context *context)
 {
-    token *tok = context->nexttok;
-    if (!tok)
+    tokentype toktyp = context->nexttok.typ;
+    if (toktyp == tok_EOF)
         return NULL;
-    if (tok->typ == tok_AtKeyword) {
+    if (toktyp == tok_AtKeyword) {
         node *nod = new_node(context, nod_AtRule);
-        node_copy_text(nod, tok);
+        node_copy_text(nod, &context->nexttok);
         read_token(context, 1);
         read_any_until_semiblock(context, nod);
-        tok = context->nexttok;
-        if (!tok) {
+        toktyp = context->nexttok.typ;
+        if (toktyp == tok_EOF) {
             return nod; /* end of file */
         }
-        if (tok->typ == tok_Semicolon) {
+        if (toktyp == tok_Semicolon) {
             /* drop the semicolon, end the AtRule */
             read_token(context, 1);
             return nod;
         }
-        if (tok->typ == tok_LBrace) {
+        if (toktyp == tok_LBrace) {
             /* beginning of block */
             node *blocknod = read_block(context);
             if (!blocknod) {
@@ -459,14 +440,14 @@ static node *read_statement(mincss_context *context)
         node *nod = new_node(context, nod_TopLevel);
         while (1) {
             read_any_top_level(context, nod);
-            token *tok = context->nexttok;
-            if (!tok) {
+            tokentype toktyp = context->nexttok.typ;
+            if (toktyp == tok_EOF) {
                 break; /* end of file */
             }
-            if (tok->typ == tok_AtKeyword) {
+            if (toktyp == tok_AtKeyword) {
                 break; /* an @-rule is next */
             }
-            if (tok->typ == tok_LBrace) {
+            if (toktyp == tok_LBrace) {
                 node *blocknod = read_block(context);
                 if (!blocknod) {
                     /* error, already reported */
@@ -511,19 +492,19 @@ static node *read_statement(mincss_context *context)
 static void read_any_top_level(mincss_context *context, node *nod)
 {
     while (1) {
-        token *tok = context->nexttok;
-        if (!tok) {
+        tokentype toktyp = context->nexttok.typ;
+        if (toktyp == tok_EOF) {
             return; /* end of file */
         }
 
-        switch (tok->typ) {
+        switch (toktyp) {
 
         case tok_LBrace:
             return;
             
         case tok_Function: {
             node *subnod = new_node(context, nod_Function);
-            node_copy_text(subnod, tok);
+            node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
             read_token(context, 1);
             read_any_until_close(context, subnod, tok_RParen);
@@ -567,7 +548,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
 
         case tok_Semicolon:
         default: {
-            node *toknod = new_node_token(context, tok);
+            node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
             read_token(context, 1);
         }
@@ -583,14 +564,14 @@ static void read_any_top_level(mincss_context *context, node *nod)
 static void read_any_until_semiblock(mincss_context *context, node *nod)
 {
     while (1) {
-        token *tok = context->nexttok;
-        if (!tok) {
+        tokentype toktyp = context->nexttok.typ;
+        if (toktyp == tok_EOF) {
             mincss_note_error(context, "Incomplete @-rule");
             /* treat as terminated */
             return;
         }
 
-        switch (tok->typ) {
+        switch (toktyp) {
 
         case tok_Semicolon: 
             return;
@@ -600,7 +581,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
             
         case tok_Function: {
             node *subnod = new_node(context, nod_Function);
-            node_copy_text(subnod, tok);
+            node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
             read_token(context, 1);
             read_any_until_close(context, subnod, tok_RParen);
@@ -645,7 +626,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
             continue;
 
         default: {
-            node *toknod = new_node_token(context, tok);
+            node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
             read_token(context, 1);
         }
@@ -661,19 +642,19 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
 static void read_any_until_close(mincss_context *context, node *nod, tokentype closetok)
 {
     while (1) {
-        token *tok = context->nexttok;
-        if (!tok) {
+        tokentype toktyp = context->nexttok.typ;
+        if (toktyp == tok_EOF) {
             mincss_note_error(context, "Missing close-delimiter");
             return;
         }
 
-        if (tok->typ == closetok) {
+        if (toktyp == closetok) {
             /* The expected close-token. */
             read_token(context, 1);
             return;
         }
 
-        switch (tok->typ) {
+        switch (toktyp) {
 
         case tok_Semicolon: 
             mincss_note_error(context, "Unexpected semicolon");
@@ -687,7 +668,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 
         case tok_Function: {
             node *subnod = new_node(context, nod_Function);
-            node_copy_text(subnod, tok);
+            node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
             read_token(context, 1);
             read_any_until_close(context, subnod, tok_RParen);
@@ -732,7 +713,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
             continue;
 
         default: {
-            node *toknod = new_node_token(context, tok);
+            node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
             read_token(context, 1);
         }
@@ -745,8 +726,8 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
 */
 static node *read_block(mincss_context *context)
 {
-    token *tok = context->nexttok;
-    if (!tok || tok->typ != tok_LBrace) {
+    tokentype toktyp = context->nexttok.typ;
+    if (toktyp == tok_EOF || toktyp != tok_LBrace) {
         mincss_note_error(context, "(Internal) Unexpected token at read_block");
         return NULL;
     }
@@ -755,13 +736,13 @@ static node *read_block(mincss_context *context)
     node *nod = new_node(context, nod_Block);
 
     while (1) {
-        tok = context->nexttok;
-        if (!tok) {
+        toktyp = context->nexttok.typ;
+        if (toktyp == tok_EOF) {
             mincss_note_error(context, "Unexpected end of block");
             return nod;
         }
 
-        switch (tok->typ) {
+        switch (toktyp) {
 
         case tok_RBrace:
             /* Done */
@@ -780,14 +761,14 @@ static node *read_block(mincss_context *context)
         }
 
         case tok_Semicolon: {
-            node *subnod = new_node_token(context, tok);
+            node *subnod = new_node_token(context, &context->nexttok);
             node_add_node(nod, subnod);
             read_token(context, 1);
             continue;
         }
 
         case tok_AtKeyword: {
-            node *atnod = new_node_token(context, tok);
+            node *atnod = new_node_token(context, &context->nexttok);
             node_add_node(nod, atnod);
             read_token(context, 1);
             continue;
@@ -795,7 +776,7 @@ static node *read_block(mincss_context *context)
 
         case tok_Function: {
             node *subnod = new_node(context, nod_Function);
-            node_copy_text(subnod, tok);
+            node_copy_text(subnod, &context->nexttok);
             node_add_node(nod, subnod);
             read_token(context, 1);
             read_any_until_close(context, subnod, tok_RParen);
@@ -836,7 +817,7 @@ static node *read_block(mincss_context *context)
 
         default: {
             /* Anything else is a single "any". */
-            node *subnod = new_node_token(context, tok);
+            node *subnod = new_node_token(context, &context->nexttok);
             node_add_node(nod, subnod);
             read_token(context, 1);
         }

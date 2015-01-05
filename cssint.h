@@ -1,3 +1,38 @@
+typedef enum tokentype_enum {
+    tok_EOF = 0,
+    tok_Delim = 1,
+    tok_Space = 2,
+    tok_Comment = 3,
+    tok_Number = 4,
+    tok_String = 5,
+    tok_Ident = 6,
+    tok_AtKeyword = 7,
+    tok_Percentage = 8,
+    tok_Dimension = 9,
+    tok_Function = 10,
+    tok_Hash = 11,
+    tok_URI = 12,
+    tok_LBrace = 13,
+    tok_RBrace = 14,
+    tok_LBracket = 15,
+    tok_RBracket = 16,
+    tok_LParen = 17,
+    tok_RParen = 18,
+    tok_Colon = 19,
+    tok_Semicolon = 20,
+    tok_Includes = 21,
+    tok_DashMatch = 22,
+    tok_CDO = 23,
+    tok_CDC = 24,
+} tokentype;
+
+typedef struct token_struct {
+    tokentype typ;
+    int32_t *text;
+    int len;
+    int div;
+} token;
+
 struct mincss_context_struct {
     int errorcount;
 
@@ -29,36 +64,11 @@ struct mincss_context_struct {
 
     int linenum; /* for error messages */
 
-    void *nexttok; /* ### token* */
+    /* The reader condenses all of the above info into a smaller structure.
+       This is a bit redundant (the div value is just copied down from
+       tokendiv) but it's tidier to have it all in one package. */
+    token nexttok;
 };
-
-typedef enum tokentype_enum {
-    tok_EOF = 0,
-    tok_Delim = 1,
-    tok_Space = 2,
-    tok_Comment = 3,
-    tok_Number = 4,
-    tok_String = 5,
-    tok_Ident = 6,
-    tok_AtKeyword = 7,
-    tok_Percentage = 8,
-    tok_Dimension = 9,
-    tok_Function = 10,
-    tok_Hash = 11,
-    tok_URI = 12,
-    tok_LBrace = 13,
-    tok_RBrace = 14,
-    tok_LBracket = 15,
-    tok_RBracket = 16,
-    tok_LParen = 17,
-    tok_RParen = 18,
-    tok_Colon = 19,
-    tok_Semicolon = 20,
-    tok_Includes = 21,
-    tok_DashMatch = 22,
-    tok_CDO = 23,
-    tok_CDC = 24,
-} tokentype;
 
 /* mincss.c */
 #define mincss_note_error(context, msg) mincss_note_error_line(context, msg, -1)
