@@ -93,6 +93,7 @@ def reporterror(msg):
     print 'ERROR: %s' % (msg,)
     
 tokenlinepat = re.compile('^<([A-Za-z]*)> *"(.*)"$')
+nodelinepat = re.compile('^[0-9]+:(.*)$')
 errorlinepat = re.compile('^MinCSS error: (.*) \\(line ([0-9]+)\\)$')
 
 def lextest(input, wanttokens, wanterrors=[]):
@@ -147,7 +148,58 @@ def lextest(input, wanttokens, wanterrors=[]):
                 reporterror('token mismatch: wanted %r, got %r' % (wanted, token,))
     for wanted in wanttokens[len(tokens):]:
         reporterror('failed to get token: %r' % (wanted,))
+
+
+def treetest(input, wantnodes, wanterrors=[]):
+    if type(input) is unicode:
+        input = input.encode('utf-8')
+        
+    popen = subprocess.Popen(['./test', '--tree'],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = popen.communicate(input)
+
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
+
+    errors = []
+    for ln in stderr.split('\n'):
+        match = errorlinepat.match(ln)
+        if not match:
+            continue
+        errors.append(match.group(1))
+
+    nodes = []
+    for ln in stdout.split('\n'):
+        match = nodelinepat.match(ln)
+        if not match:
+            continue
+        nodes.append(match.group(1))
+
+    for (ix, error) in enumerate(errors):
+        if ix >= len(wanterrors):
+            reporterror('unexpected error: %r' % (error,))
+        else:
+            wanted = wanterrors[ix]
+            if error != wanted:
+                reporterror('error mismatch: wanted %r, got %r' % (wanted, error,))
+    for wanted in wanterrors[len(errors):]:
+        reporterror('failed to get error: %r' % (wanted,))
+
+    wantnodes = wantnodes.split('\n')
+    wantnodes = [ ln.rstrip() for ln in wantnodes ]
+    wantnodes = [ ln for ln in wantnodes if ln ]
     
+    for (ix, node) in enumerate(nodes):
+        if ix >= len(wantnodes):
+            reporterror('unexpected node: "%s"' % (node,))
+        else:
+            wanted = wantnodes[ix]
+            if wanted != node:
+                reporterror('node mismatch: wanted "%s", got "%s"' % (wanted, node,))
+    for wanted in wantnodes[len(nodes):]:
+        reporterror('failed to get node: "%s"' % (wanted,))
+    
+
 lextestlist = [
     (' \f\t\n\r \n',
      [Space(' ^L^I^J^M ^J')]),
@@ -379,6 +431,32 @@ lextestlist = [
      [URI('url(()\\)')]),
     ]
 
+treetestlist = [
+    ('\n',
+     '''
+Stylesheet
+'''),
+    ('{}',
+     '''
+Stylesheet
+ TopLevel
+  Block
+'''),
+    ('{}{}',
+     '''
+Stylesheet
+ TopLevel
+  Block
+  Block
+'''),
+    ('  <!-- {} --> {} --> ',
+     '''
+Stylesheet
+ TopLevel
+  Block
+  Block
+'''),
+    ]
 
 
 popt = optparse.OptionParser()
@@ -403,6 +481,16 @@ if opts.runlexer or runalltests:
         if len(tup) == 3:
             errors = tup[2]
         lextest(input, tokens, errors)
+
+if opts.runtree or runalltests:
+    for tup in treetestlist:
+        testcount += 1
+        input = tup[0]
+        nodes = tup[1]
+        errors = []
+        if len(tup) == 3:
+            errors = tup[2]
+        treetest(input, nodes, errors)
 
 if errorcount:
     print 'FAILED, %d errors (%d tests)' % (errorcount, testcount)

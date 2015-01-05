@@ -548,6 +548,7 @@ static void read_any_top_level(mincss_context *context, node *nod)
         case tok_CDC:
             /* Swallow, ignore */
             read_token(context);
+            read_token_skipspace(context);
             continue;
 
         case tok_RParen:
@@ -632,6 +633,7 @@ static void read_any_until_semiblock(mincss_context *context, node *nod)
         case tok_CDC:
             mincss_note_error(context, "HTML comment delimiters not allowed inside @-rule");
             read_token(context);
+            read_token_skipspace(context);
             continue;
 
         case tok_RParen:
@@ -719,6 +721,7 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
         case tok_CDC:
             mincss_note_error(context, "HTML comment delimiters not allowed inside brackets");
             read_token(context);
+            read_token_skipspace(context);
             continue;
 
         case tok_RParen:
@@ -829,6 +832,7 @@ static node *read_block(mincss_context *context)
         case tok_CDC:
             mincss_note_error(context, "HTML comment delimiters not allowed inside block");
             read_token(context);
+            read_token_skipspace(context);
             continue;
 
         case tok_RParen:
