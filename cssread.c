@@ -563,7 +563,14 @@ static void read_any_top_level(mincss_context *context, node *nod)
         case tok_AtKeyword:
             return;
 
-        case tok_Semicolon:
+        case tok_Semicolon: {
+            node *toknod = new_node_token(context, &context->nexttok);
+            node_add_node(nod, toknod);
+            read_token(context);
+            read_token_skipspace(context);
+            continue;
+        }
+
         default: {
             node *toknod = new_node_token(context, &context->nexttok);
             node_add_node(nod, toknod);
@@ -749,6 +756,7 @@ static node *read_block(mincss_context *context)
         return NULL;
     }
     read_token(context);
+    read_token_skipspace(context);
 
     node *nod = new_node(context, nod_Block);
 
