@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import sys
 import re
+import optparse
 import subprocess
 
 class TrackMetaClass(type):
@@ -83,6 +85,7 @@ class CDC(TokenBase):
     name = 'CDC'
 
 errorcount = 0
+testcount = 0
 
 def reporterror(msg):
     global errorcount
@@ -376,13 +379,32 @@ lextestlist = [
      [URI('url(()\\)')]),
     ]
 
-for tup in lextestlist:
-    input = tup[0]
-    tokens = tup[1]
-    errors = []
-    if len(tup) == 3:
-        errors = tup[2]
-    lextest(input, tokens, errors)
+
+
+popt = optparse.OptionParser()
+
+popt.add_option('-L', '--lexer',
+                action='store_true', dest='runlexer',
+                help='run the lexer tests')
+popt.add_option('-T', '--tree',
+                action='store_true', dest='runtree',
+                help='run the tree tests')
+
+(opts, args) = popt.parse_args()
+
+runalltests = not (opts.runlexer or opts.runtree)
+
+if opts.runlexer or runalltests:
+    for tup in lextestlist:
+        testcount += 1
+        input = tup[0]
+        tokens = tup[1]
+        errors = []
+        if len(tup) == 3:
+            errors = tup[2]
+        lextest(input, tokens, errors)
 
 if errorcount:
-    print 'FAILED, %d errors' % (errorcount,)
+    print 'FAILED, %d errors (%d tests)' % (errorcount, testcount)
+else:
+    print 'Ok (%d tests)' % (testcount,)
