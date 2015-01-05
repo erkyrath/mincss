@@ -177,11 +177,11 @@ def treetest(input, wantnodes, wanterrors=[]):
 
     for (ix, error) in enumerate(errors):
         if ix >= len(wanterrors):
-            reporterror('unexpected error: %r' % (error,))
+            reporterror('unexpected error: "%s"' % (error,))
         else:
             wanted = wanterrors[ix]
             if error != wanted:
-                reporterror('error mismatch: wanted %r, got %r' % (wanted, error,))
+                reporterror('error mismatch: wanted "%s", got "%s"' % (wanted, error,))
     for wanted in wanterrors[len(errors):]:
         reporterror('failed to get error: %r' % (wanted,))
 
@@ -456,6 +456,7 @@ Stylesheet
   Block
   Block
 '''),
+    
     (' @foo; @bar {} @baz 1 2 3 {} @quux x ; ',
      '''
 Stylesheet
@@ -474,6 +475,7 @@ Stylesheet
   Token (Ident) "x"
   Token (Space)
 '''),
+    
     (' @foo ; prop {} prop2 { 1 } @baz{}{}',
      '''
 Stylesheet
@@ -492,6 +494,62 @@ Stylesheet
  TopLevel
   Block
 '''),
+    
+    ('@foo { y[x(z)] }',
+     '''
+Stylesheet
+ AtRule "foo"
+  Block
+   Token (Ident) "y"
+   Brackets
+    Function "x"
+     Token (Ident) "z"
+   Token (Space)
+'''),
+    
+    ('@foo { y[x(z) }',
+     '''
+Stylesheet
+ AtRule "foo"
+  Block
+   Token (Ident) "y"
+   Brackets
+    Function "x"
+     Token (Ident) "z"
+    Token (Space)
+    Token (RBrace)
+''',
+     [ "Missing close-delimiter",
+       "Unexpected end of block" ]),
+    ('@foo { y[x(z] }',
+     '''
+Stylesheet
+ AtRule "foo"
+  Block
+   Token (Ident) "y"
+   Brackets
+    Function "x"
+     Token (Ident) "z"
+     Token (Space)
+     Token (RBrace)
+''',
+     [ "Unexpected close-bracket inside brackets",
+       "Missing close-delimiter",
+       "Missing close-delimiter",
+       "Unexpected end of block" ]),
+    
+    ('@foo { y[x(z)]',
+     '''
+Stylesheet
+ AtRule "foo"
+  Block
+   Token (Ident) "y"
+   Brackets
+    Function "x"
+     Token (Ident) "z"
+''',
+     [ "Unexpected end of block" ]),
+    
     ]
 
 
