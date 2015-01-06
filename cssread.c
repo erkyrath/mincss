@@ -1007,6 +1007,17 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
     }
     printf("\n");
 
+    if (propend <= propstart) {
+        node_note_error(context, nod->nodes[propstart], "Declaration lacks property");
+        return;
+    }
+    if (valend <= propstart || valend <= valstart) {
+        /* We mark this error at propstart to be extra careful about
+           array overflow. */
+        node_note_error(context, nod->nodes[propstart], "Declaration lacks value");
+        return;
+    }
+
     /* The property part must be a single identifier (plus optional
        whitespace). Check this by backing propend up through any
        trailing whitespace. */
