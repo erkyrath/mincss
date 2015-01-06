@@ -683,12 +683,12 @@ static void read_any_until_close(mincss_context *context, node *nod, tokentype c
         switch (toktyp) {
 
         case tok_Semicolon: 
-            mincss_note_error(context, "Unexpected semicolon");
+            mincss_note_error(context, "Unexpected semicolon inside brackets");
             read_token(context);
             continue;
             
         case tok_LBrace:
-            mincss_note_error(context, "Unexpected block");
+            mincss_note_error(context, "Unexpected block inside brackets");
             read_block(context);
             continue;
 

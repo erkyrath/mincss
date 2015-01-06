@@ -571,6 +571,67 @@ Stylesheet
 ''',
      [ "Unexpected close-paren", "Unexpected close-bracket" ]),
     
+    ('@foo ',
+     '''
+Stylesheet
+ AtRule "foo"
+''',
+     [ "Incomplete @-rule" ]),
+    
+    ('@foo <!-- ) ] @bar ;',
+     '''
+Stylesheet
+ AtRule "foo"
+  Token (Space)
+  Token (Space)
+  Token (Space)
+''',
+     [ "HTML comment delimiters not allowed inside @-rule",
+       "Unexpected close-paren inside @-rule",
+       "Unexpected close-bracket inside @-rule",
+       "Unexpected @-keyword inside @-rule"]),
+    
+    ('{ ( ; ) [ {} ] }',
+     '''
+Stylesheet
+ TopLevel
+  Block
+   Parens
+    Token (Space)
+    Token (Space)
+   Token (Space)
+   Brackets
+    Token (Space)
+   Token (Space)
+''',
+     [ "Unexpected semicolon inside brackets",
+       "Unexpected block inside brackets"]),
+    
+    ('{ [( @foo )] }',
+     '''
+Stylesheet
+ TopLevel
+  Block
+   Brackets
+    Parens
+     Token (Space)
+     Token (Space)
+   Token (Space)
+''',
+     [ "Unexpected @-keyword inside brackets"]),
+    
+    ('{ --> ) ] }',
+     '''
+Stylesheet
+ TopLevel
+  Block
+   Token (Space)
+   Token (Space)
+''',
+     [ "HTML comment delimiters not allowed inside block",
+       "Unexpected close-paren inside block",
+       "Unexpected close-bracket inside block" ]),
+    
     ]
 
 
