@@ -257,8 +257,11 @@ static void dump_indent(int val)
 
 static void dump_node(node *nod, int depth)
 {
-    printf("%02d:", nod->linenum);
-    dump_indent(depth);
+    if (depth >= 0) {
+        printf("%02d:", nod->linenum);
+        dump_indent(depth);
+    }
+
     switch (nod->typ) {
     case nod_None:
         printf("None");
@@ -315,12 +318,14 @@ static void dump_node(node *nod, int depth)
         printf(" <%d/%d>", nod->textdiv, nod->textlen);
     }
 
-    printf("\n");
+    if (depth >= 0) {
+        printf("\n");
 
-    if (nod->nodes) {
-        int ix;
-        for (ix=0; ix<nod->numnodes; ix++) {
-            dump_node(nod->nodes[ix], depth+1);
+        if (nod->nodes) {
+            int ix;
+            for (ix=0; ix<nod->numnodes; ix++) {
+                dump_node(nod->nodes[ix], depth+1);
+            }
         }
     }
 }
@@ -857,6 +862,7 @@ static node *read_block(mincss_context *context)
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
+static void construct_selectors(mincss_context *context, node *nod, int start, int end);
 static void construct_declarations(mincss_context *context, node *nod);
 static void construct_declaration(mincss_context *context, node *nod, int start, int colon, int end);
 
@@ -922,9 +928,23 @@ static void construct_rulesets(mincss_context *context, node *nod)
             continue;
         }
 
+        construct_selectors(context, nod, start, blockpos);
+
         node *blocknod = nod->nodes[blockpos];
         construct_declarations(context, blocknod);
     }
+}
+
+static void construct_selectors(mincss_context *context, node *nod, int start, int end)
+{
+    printf("### selectors from %d to %d: ", start, end);
+    int ix;
+    for (ix=start; ix<end; ix++) {
+        if (ix > start)
+            printf(", ");
+        dump_node(nod->nodes[ix], -1);
+    }
+    printf("\n");
 }
 
 static void construct_declarations(mincss_context *context, node *nod)
