@@ -45,6 +45,7 @@ static void node_copy_text(node *nod, token *tok);
 static void node_add_node(node *nod, node *nod2);
 
 #define node_note_error(context, nod, msg) mincss_note_error_line(context, msg, nod->linenum)
+#define node_is_space(nod) ((nod)->typ == nod_Token && (nod)->toktype == tok_Space)
 
 static node *read_stylesheet(mincss_context *context);
 static node *read_statement(mincss_context *context);
@@ -864,7 +865,7 @@ static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end);
 static void construct_declarations(mincss_context *context, node *nod);
-static void construct_declaration(mincss_context *context, node *nod, int start, int colon, int end);
+static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 
 static void construct_stylesheet(mincss_context *context, node *nod)
 {
@@ -951,27 +952,63 @@ static void construct_declarations(mincss_context *context, node *nod)
 {
     int start = 0;
     int semipos = -1;
-    for (start = 0; start < nod->numnodes; start = semipos+1) {
+    while (start < nod->numnodes) {
+        if (node_is_space(nod->nodes[start])) {
+            /* skip initial whitespace */
+            start++;
+            continue;
+        }
+
+        /* Locate the colon and semicolon in the declaration. */
         int ix;
-        int colon = -1;
+        int colonpos = -1;
         for (ix = start; ix < nod->numnodes; ix++) {
-            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Colon && colon < 0)
-                colon = ix;
+            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Colon && colonpos < 0)
+                colonpos = ix;
             if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Semicolon) 
                 break;
         }
         semipos = ix;
+
         if (semipos > start) {
-            if (colon < 0)
+            if (colonpos < 0) {
                 node_note_error(context, nod->nodes[start], "Declaration lacks colon");
-            else
-                construct_declaration(context, nod, start, colon, semipos);
+            }
+            else {
+                /* Locate the first non-whitespace after the colon. */
+                int valstart = colonpos+1;
+                while (valstart < semipos) {
+                    if (!node_is_space(nod->nodes[valstart]))
+                        break;
+                    valstart++;
+                }
+                construct_declaration(context, nod, start, colonpos, valstart, semipos);
+            }
         }
+        start = semipos+1;
     }
 }
 
-static void construct_declaration(mincss_context *context, node *nod, int start, int colon, int end)
+static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
 {
+    printf("### prop %d to %d: ", propstart, propend);
+    int ix;
+    for (ix=propstart; ix<propend; ix++) {
+        if (ix > propstart)
+            printf(", ");
+        dump_node(nod->nodes[ix], -1);
+    }
+    printf("\n");
+    printf("### val %d to %d: ", valstart, valend);
+    for (ix=valstart; ix<valend; ix++) {
+        if (ix > valstart)
+            printf(", ");
+        dump_node(nod->nodes[ix], -1);
+    }
+    printf("\n");
+    return; /*###*/
+
+#if 0 /*###*/
     if (colon-start != 1 || nod->nodes[start]->typ != nod_Token || nod->nodes[start]->toktype != tok_Ident) {
         node_note_error(context, nod->nodes[start], "Declaration property is not an identifier");
         return;
@@ -1056,4 +1093,5 @@ static void construct_declaration(mincss_context *context, node *nod, int start,
     }
 
     /* ### all ok */
+#endif /*###*/
 }
