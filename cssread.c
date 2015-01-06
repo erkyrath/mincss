@@ -991,7 +991,7 @@ static void construct_declarations(mincss_context *context, node *nod)
 
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
 {
-    printf("### prop %d to %d: ", propstart, propend);
+    printf("###   prop %d to %d: ", propstart, propend);
     int ix;
     for (ix=propstart; ix<propend; ix++) {
         if (ix > propstart)
@@ -999,34 +999,62 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
         dump_node(nod->nodes[ix], -1);
     }
     printf("\n");
-    printf("### val %d to %d: ", valstart, valend);
+    printf("###     val %d to %d: ", valstart, valend);
     for (ix=valstart; ix<valend; ix++) {
         if (ix > valstart)
             printf(", ");
         dump_node(nod->nodes[ix], -1);
     }
     printf("\n");
-    return; /*###*/
 
-#if 0 /*###*/
-    if (colon-start != 1 || nod->nodes[start]->typ != nod_Token || nod->nodes[start]->toktype != tok_Ident) {
-        node_note_error(context, nod->nodes[start], "Declaration property is not an identifier");
+    /* The property part must be a single identifier (plus optional
+       whitespace). Check this by backing propend up through any
+       trailing whitespace. */
+
+    while (propend > propstart) {
+        if (!node_is_space(nod->nodes[propend-1]))
+            break;
+        propend--;
+    }
+
+    if (propend - propstart != 1 || nod->nodes[propstart]->typ != nod_Token || nod->nodes[propstart]->toktype != tok_Ident) {
+        node_note_error(context, nod->nodes[propstart], "Declaration property is not an identifier");
         return;
     }
-    int valstart = colon+1;
 
     /* The "!important" flag is a special case. It's always at the
-       end. */
+       end of the value. We try backing up through that. It's a nuisance,
+       because there can be whitespace. */
     int important = 0;
-    if (end-start >= 2) {
-        node *bangnod = nod->nodes[end-2];
-        node *prionod = nod->nodes[end-1];
-        if (bangnod->typ == nod_Token && bangnod->toktype == tok_Delim && node_text_matches(bangnod, "!")
-            && prionod->typ == nod_Token && prionod->toktype == tok_Ident && node_text_matches(prionod, "important")) {
-            end -= 2;
-            important = 1;
+    {
+        int counter = 0;
+        ix = valend;
+        while (ix > valstart) {
+            node *subnod = nod->nodes[ix-1];
+            if (!node_is_space(subnod)) {
+                if (counter == 0) {
+                    if (subnod->typ == nod_Token && subnod->toktype == tok_Ident && node_text_matches(subnod, "important"))
+                        counter++;
+                    else
+                        break;
+                }
+                else if (counter == 1) {
+                    if (subnod->typ == nod_Token && subnod->toktype == tok_Delim && node_text_matches(subnod, "!"))
+                        counter++;
+                    else
+                        break;
+                }
+            }
+            if (counter >= 2) {
+                valend = ix;
+                important = 1;
+                break;
+            }
+            ix--;
         }
     }
+
+#if 0 /*###*/
 
     /* Parse out a list of values. These are normally separated only 
        by whitespace, but a slash is possible (see the CSS spec re the
