@@ -1065,8 +1065,6 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
         }
     }
 
-#if 0 /*###*/
-
     /* Parse out a list of values. These are normally separated only 
        by whitespace, but a slash is possible (see the CSS spec re the
        "font" shorthand property). We don't try to work out the value
@@ -1075,11 +1073,22 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
     int slashsep = 0;
     int unaryop = 0;
     int terms = 0;
-    int ix;
-    for (ix=valstart; ix<end; ix++) {
+    for (ix=valstart; ix<valend; ix++) {
         node *valnod = nod->nodes[ix];
+        if (node_is_space(valnod)) {
+            if (unaryop) {
+                node_note_error(context, nod, "Unexpected +/- with no value");
+                return;
+            }
+            continue;
+        }
+
         if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !slashsep && !unaryop) {
-            slashsep = 1;
+            slashsep = '/';
+            continue;
+        }
+        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, ",") && !slashsep && !unaryop) {
+            slashsep = ',';
             continue;
         }
         if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
@@ -1094,7 +1103,7 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
           want to break out the expr list parser as its own function, sure. */
         if (valnod->typ == nod_Token) {
             if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
-                printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
+                printf("### %c %c: ", (slashsep?slashsep:' '), (unaryop?unaryop:' '));
                 dump_node(valnod, 0);
                 terms += 1;
                 unaryop = 0;
@@ -1106,7 +1115,7 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
                     node_note_error(context, valnod, "Declaration value cannot have +/-");
                     return; /*###*/
                 }
-                printf("### %c %c: ", (slashsep?'/':' '), (unaryop?unaryop:' '));
+                printf("### %c %c: ", (slashsep?slashsep:' '), (unaryop?unaryop:' '));
                 dump_node(valnod, 0);
                 terms += 1;
                 unaryop = 0;
@@ -1132,5 +1141,4 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
     }
 
     /* ### all ok */
-#endif /*###*/
 }
