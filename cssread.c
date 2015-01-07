@@ -866,6 +866,7 @@ static void construct_rulesets(mincss_context *context, node *nod);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end);
 static void construct_declarations(mincss_context *context, node *nod);
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
+static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
 
 static void construct_stylesheet(mincss_context *context, node *nod)
 {
@@ -1065,6 +1066,13 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
         }
     }
 
+    construct_expr(context, nod, valstart, valend, 1);
+}
+
+static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel)
+{
+    int ix;
+
     /* Parse out a list of values. These are normally separated only 
        by whitespace, but a slash is possible (see the CSS spec re the
        "font" shorthand property). We don't try to work out the value
@@ -1073,7 +1081,7 @@ static void construct_declaration(mincss_context *context, node *nod, int propst
     int slashsep = 0;
     int unaryop = 0;
     int terms = 0;
-    for (ix=valstart; ix<valend; ix++) {
+    for (ix=start; ix<end; ix++) {
         node *valnod = nod->nodes[ix];
         if (node_is_space(valnod)) {
             if (unaryop) {
