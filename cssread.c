@@ -1091,24 +1091,39 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
             continue;
         }
 
-        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !valsep && !unaryop) {
-            valsep = '/';
+        if (valnod->typ == nod_Token) {
+            if (valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !valsep && !unaryop) {
+                valsep = '/';
+                continue;
+            }
+            if (valnod->toktype == tok_Delim && node_text_matches(valnod, ",") && !valsep && !unaryop) {
+                valsep = ',';
+                continue;
+            }
+            if (valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
+                unaryop = '+';
+                continue;
+            }
+            if (valnod->toktype == tok_Delim && node_text_matches(valnod, "-") && !unaryop) {
+                unaryop = '-';
+                continue;
+            }
+        }
+
+        if (valnod->typ == nod_Function) {
+            if (unaryop) {
+                node_note_error(context, valnod, "Function cannot have +/-");
+                return; /*###*/
+            }
+            construct_expr(context, valnod, 0, valnod->numnodes, 0); /*### store */
+            printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
+            dump_node(valnod, 0);
+            terms += 1;
+            unaryop = 0;
+            valsep = 0;
             continue;
         }
-        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, ",") && !valsep && !unaryop) {
-            valsep = ',';
-            continue;
-        }
-        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
-            unaryop = '+';
-            continue;
-        }
-        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "-") && !unaryop) {
-            unaryop = '-';
-            continue;
-        }
-        /*### Function case: parse the arguments as a sub-list. Probably
-          want to break out the expr list parser as its own function, sure. */
+
         if (valnod->typ == nod_Token) {
             if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
                 printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
@@ -1118,6 +1133,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 valsep = 0;
                 continue;
             }
+
             if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_URI) {
                 if (unaryop) {
                     node_note_error(context, valnod, "Declaration value cannot have +/-");
@@ -1131,6 +1147,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 continue;
             }
         }
+
         node_note_error(context, valnod, "Invalid declaration value");
         return; /*###*/
     }
