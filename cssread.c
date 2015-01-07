@@ -1078,7 +1078,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
        "font" shorthand property). We don't try to work out the value
        type or check type validity here. We do verify the expression
        syntax, though. */
-    int slashsep = 0;
+    int valsep = 0;
     int unaryop = 0;
     int terms = 0;
     for (ix=start; ix<end; ix++) {
@@ -1091,12 +1091,12 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
             continue;
         }
 
-        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !slashsep && !unaryop) {
-            slashsep = '/';
+        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !valsep && !unaryop) {
+            valsep = '/';
             continue;
         }
-        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, ",") && !slashsep && !unaryop) {
-            slashsep = ',';
+        if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, ",") && !valsep && !unaryop) {
+            valsep = ',';
             continue;
         }
         if (valnod->typ == nod_Token && valnod->toktype == tok_Delim && node_text_matches(valnod, "+") && !unaryop) {
@@ -1111,11 +1111,11 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
           want to break out the expr list parser as its own function, sure. */
         if (valnod->typ == nod_Token) {
             if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
-                printf("### %c %c: ", (slashsep?slashsep:' '), (unaryop?unaryop:' '));
+                printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
                 dump_node(valnod, 0);
                 terms += 1;
                 unaryop = 0;
-                slashsep = 0;
+                valsep = 0;
                 continue;
             }
             if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_URI) {
@@ -1123,11 +1123,11 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                     node_note_error(context, valnod, "Declaration value cannot have +/-");
                     return; /*###*/
                 }
-                printf("### %c %c: ", (slashsep?slashsep:' '), (unaryop?unaryop:' '));
+                printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
                 dump_node(valnod, 0);
                 terms += 1;
                 unaryop = 0;
-                slashsep = 0;
+                valsep = 0;
                 continue;
             }
         }
@@ -1135,8 +1135,8 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         return; /*###*/
     }
 
-    if (slashsep) {
-        node_note_error(context, nod, "Unexpected trailing slash");
+    if (valsep) {
+        node_note_error(context, nod, "Unexpected trailing separator");
         return; /*###*/
     }
     if (unaryop) {
