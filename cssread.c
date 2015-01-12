@@ -1092,6 +1092,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         }
 
         if (valnod->typ == nod_Token) {
+            /*### This accepts a slash/comma before the first term */
             if (valnod->toktype == tok_Delim && node_text_matches(valnod, "/") && !valsep && !unaryop) {
                 valsep = '/';
                 continue;
