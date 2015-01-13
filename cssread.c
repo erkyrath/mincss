@@ -1043,7 +1043,25 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
             hasspace++;
         }
         if (!hasspace) {
-            /*### combinator, selector */
+            /* Must be a combinator (+/>) followed by another selector. */
+            if (pos < end) {
+                if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && (node_text_matches(nod->nodes[pos], "+") || node_text_matches(nod->nodes[pos], ">"))) {
+                    int combinator = nod->nodes[pos]->text[0];
+                    printf("### combinator %c\n", combinator);
+                    pos++;
+                    while (pos < end && node_is_space(nod->nodes[pos])) {
+                        pos++;
+                        hasspace++;
+                    }
+                    int newpos = pos;
+                    if (pos < end) {
+                        newpos = construct_selector(context, nod, pos, end);
+                    }
+                    if (newpos == pos)
+                        node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
+                    pos = newpos;
+                }
+            }
         }
         else {
             /*### [ combinator? selector] ? */
