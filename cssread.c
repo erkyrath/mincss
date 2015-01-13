@@ -876,6 +876,7 @@ static node *read_block(mincss_context *context)
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end);
+static void construct_selector(mincss_context *context, node *nod, int start, int end);
 static void construct_declarations(mincss_context *context, node *nod);
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
@@ -951,7 +952,30 @@ static void construct_rulesets(mincss_context *context, node *nod)
 
 static void construct_selectors(mincss_context *context, node *nod, int start, int end)
 {
-    dump_node_range("selectors", nod, start, end);
+    /* Split the range by commas; each is a selector. */
+    while (start < end) {
+        if (node_is_space(nod->nodes[start])) {
+            /* skip initial whitespace */
+            start++;
+            continue;
+        }
+
+        int ix;
+        for (ix = start; ix < end; ix++) {
+            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Delim && node_text_matches(nod->nodes[ix], ","))
+                break;
+        }
+
+        if (ix > start) {
+            construct_selector(context, nod, start, ix);
+        }
+        start = ix+1;
+    }
+}
+
+static void construct_selector(mincss_context *context, node *nod, int start, int end)
+{
+    dump_node_range("selector", nod, start, end);
 
     /*### simple selector: ident|* followed by HASH, .IDENT, [...], :...
       OR one or more HASH, .IDENT, [...], :... */
@@ -961,6 +985,7 @@ static void construct_declarations(mincss_context *context, node *nod)
 {
     int start = 0;
     int semipos = -1;
+    /* Split the range by semicolons; each is a declaration. */
     while (start < nod->numnodes) {
         if (node_is_space(nod->nodes[start])) {
             /* skip initial whitespace */
@@ -1000,8 +1025,8 @@ static void construct_declarations(mincss_context *context, node *nod)
 
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
 {
-    dump_node_range(" prop", nod, propstart, propend);
-    dump_node_range("  val", nod, valstart, valend);
+    dump_node_range(" prop", nod, propstart, propend); /*###*/
+    dump_node_range("  val", nod, valstart, valend); /*###*/
 
     int ix;
 
