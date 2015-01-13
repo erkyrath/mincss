@@ -952,30 +952,38 @@ static void construct_rulesets(mincss_context *context, node *nod)
 
 static void construct_selectors(mincss_context *context, node *nod, int start, int end)
 {
+    int pos = start;
+
     /* Split the range by commas; each is a selector. */
-    while (start < end) {
-        if (node_is_space(nod->nodes[start])) {
+    while (pos < end) {
+        if (node_is_space(nod->nodes[pos])) {
             /* skip initial whitespace */
-            start++;
+            pos++;
             continue;
         }
 
         int ix;
-        for (ix = start; ix < end; ix++) {
+        for (ix = pos; ix < end; ix++) {
             if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Delim && node_text_matches(nod->nodes[ix], ","))
                 break;
         }
 
-        if (ix > start) {
-            construct_selector(context, nod, start, ix);
+        if (ix > pos) {
+            construct_selector(context, nod, pos, ix);
         }
-        start = ix+1;
+        else {
+            node_note_error(context, nod->nodes[start], "Block has empty selector");
+        }
+        pos = ix+1;
     }
 }
 
 static void construct_selector(mincss_context *context, node *nod, int start, int end)
 {
-    dump_node_range("selector", nod, start, end);
+    dump_node_range("selector", nod, start, end); /*###*/
+
+    /* Start by parsing a simple selector. This is a chain of elements,
+       classes, etc with no top-level whitespace. */
 
     /*### simple selector: ident|* followed by HASH, .IDENT, [...], :...
       OR one or more HASH, .IDENT, [...], :... */
