@@ -876,7 +876,7 @@ static node *read_block(mincss_context *context)
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end);
-static void construct_selector(mincss_context *context, node *nod, int start, int end);
+static int construct_selector(mincss_context *context, node *nod, int start, int end);
 static void construct_declarations(mincss_context *context, node *nod);
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
@@ -969,7 +969,9 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
         }
 
         if (ix > pos) {
-            construct_selector(context, nod, pos, ix);
+            int finalpos = construct_selector(context, nod, pos, ix);
+            if (finalpos < ix)
+                node_note_error(context, nod->nodes[finalpos], "Unrecognized text in selector");
         }
         else {
             node_note_error(context, nod->nodes[start], "Block has empty selector");
@@ -978,7 +980,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
     }
 }
 
-static void construct_selector(mincss_context *context, node *nod, int start, int end)
+static int construct_selector(mincss_context *context, node *nod, int start, int end)
 {
     dump_node_range("selector", nod, start, end); /*###*/
 
@@ -1033,6 +1035,22 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
     if (!has_element && !count) {
         node_note_error(context, nod->nodes[start], "No selector found");
     }
+
+    if (pos < end) {
+        int hasspace = 0;
+        while (pos < end && node_is_space(nod->nodes[pos])) {
+            pos++;
+            hasspace++;
+        }
+        if (!hasspace) {
+            /*### combinator, selector */
+        }
+        else {
+            /*### [ combinator? selector] ? */
+        }
+    }
+
+    return pos;
 }
 
 static void construct_declarations(mincss_context *context, node *nod)
