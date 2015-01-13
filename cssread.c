@@ -982,11 +982,57 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
 {
     dump_node_range("selector", nod, start, end); /*###*/
 
+    int pos = start;
     /* Start by parsing a simple selector. This is a chain of elements,
        classes, etc with no top-level whitespace. */
 
-    /*### simple selector: ident|* followed by HASH, .IDENT, [...], :...
-      OR one or more HASH, .IDENT, [...], :... */
+    int has_element = 0;
+    if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], "*")) {
+        /*### asterisk */
+        printf("### element asterisk\n");
+        pos++;
+        has_element = 1;
+    }
+    else if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Ident) {
+        /* ### element-name */
+        printf("### element ident\n");
+        pos++;
+        has_element = 1;
+    }
+
+    int count = 0;
+    while (pos < end) {
+        if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Hash) {
+            /* ### hash */
+            printf("### hash\n");
+            pos++;
+            count++;
+        }
+        else if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], ".")
+                 && pos+1 < end && nod->nodes[pos+1]->typ == nod_Token && nod->nodes[pos+1]->toktype == tok_Ident) {
+            /*### class */
+            printf("### class\n");
+            pos += 2;
+            count++;
+        }
+        else if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], ":")
+                 && pos+1 < end && nod->nodes[pos+1]->typ == nod_Token && nod->nodes[pos+1]->toktype == tok_Ident) {
+            /*### pseudo */
+            printf("### pseudo\n");
+            /* ### does not catch the :func() case */
+            pos += 2;
+            count++;
+        }
+        /*### or [attribute] */
+        else {
+            /* Not a recognized part of a simple selector. */
+            break;
+        }
+    }
+    
+    if (!has_element && !count) {
+        node_note_error(context, nod->nodes[start], "No selector found");
+    }
 }
 
 static void construct_declarations(mincss_context *context, node *nod)
