@@ -331,6 +331,18 @@ static void dump_node(node *nod, int depth)
     }
 }
 
+static void dump_node_range(char *label, node *nod, int start, int end)
+{
+    printf("%s from %d to %d: ", label, start, end);
+    int ix;
+    for (ix=start; ix<end; ix++) {
+        if (ix > start)
+            printf(", ");
+        dump_node(nod->nodes[ix], -1);
+    }
+    printf("\n");
+}
+
 static void node_copy_text(node *nod, token *tok)
 {
     if (tok->text) {
@@ -939,14 +951,10 @@ static void construct_rulesets(mincss_context *context, node *nod)
 
 static void construct_selectors(mincss_context *context, node *nod, int start, int end)
 {
-    printf("### selectors from %d to %d: ", start, end);
-    int ix;
-    for (ix=start; ix<end; ix++) {
-        if (ix > start)
-            printf(", ");
-        dump_node(nod->nodes[ix], -1);
-    }
-    printf("\n");
+    dump_node_range("selectors", nod, start, end);
+
+    /*### simple selector: ident|* followed by HASH, .IDENT, [...], :...
+      OR one or more HASH, .IDENT, [...], :... */
 }
 
 static void construct_declarations(mincss_context *context, node *nod)
@@ -992,21 +1000,10 @@ static void construct_declarations(mincss_context *context, node *nod)
 
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
 {
-    printf("###   prop %d to %d: ", propstart, propend);
+    dump_node_range(" prop", nod, propstart, propend);
+    dump_node_range("  val", nod, valstart, valend);
+
     int ix;
-    for (ix=propstart; ix<propend; ix++) {
-        if (ix > propstart)
-            printf(", ");
-        dump_node(nod->nodes[ix], -1);
-    }
-    printf("\n");
-    printf("###     val %d to %d: ", valstart, valend);
-    for (ix=valstart; ix<valend; ix++) {
-        if (ix > valstart)
-            printf(", ");
-        dump_node(nod->nodes[ix], -1);
-    }
-    printf("\n");
 
     if (propend <= propstart) {
         node_note_error(context, nod->nodes[propstart], "Declaration lacks property");
