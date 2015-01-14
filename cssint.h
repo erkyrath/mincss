@@ -70,6 +70,37 @@ struct mincss_context_struct {
     token nexttok;
 };
 
+typedef enum nodetype_enum {
+    nod_None = 0,
+    nod_Token = 1,
+    nod_Stylesheet = 2,
+    nod_TopLevel = 3,
+    nod_AtRule = 4,
+    nod_Ruleset = 5,
+    nod_Selector = 6,
+    nod_Block = 7,
+    nod_Parens = 8,
+    nod_Brackets = 9,
+    nod_Function = 10,
+} nodetype;
+
+typedef struct node_struct {
+    nodetype typ;
+
+    int linenum; /* for debugging */
+
+    /* All of these fields are optional. */
+    int32_t *text;
+    int textlen;
+    int textdiv;
+
+    tokentype toktype;
+    
+    struct node_struct **nodes;
+    int numnodes;
+    int nodes_size;
+} node;
+
 /* mincss.c */
 #define mincss_note_error(context, msg) mincss_note_error_line(context, msg, -1)
 extern void mincss_note_error_line(mincss_context *context, char *msg, int linenum);
@@ -81,3 +112,9 @@ extern char *mincss_token_name(tokentype tok);
 
 /* cssread.c */
 extern void mincss_read(mincss_context *context);
+extern void mincss_dump_node(node *nod, int depth);
+extern void mincss_dump_node_range(char *label, node *nod, int start, int end);
+
+/* csscons.c */
+extern void mincss_construct_stylesheet(mincss_context *context, node *nod);
+
