@@ -18,12 +18,15 @@ typedef enum operator_enum {
 typedef struct sselector_struct {
     operator op;
     int32_t *element;
-    int32_t *classes;
+    int elementlen;
+    int32_t **classes;
+    int numclasses, classes_size;
     /*### attributes, pseudo */
 } sselector;
 
 typedef struct selector_struct {
-    sselector *sselectors;
+    sselector **sselectors;
+    int numsselectors, sselectors_size;
 } selector;
 
 typedef struct pvalue_struct {
@@ -33,17 +36,26 @@ typedef struct pvalue_struct {
 
 typedef struct declaration_struct {
     int32_t *property;
-    pvalue *pvalues;
+    int propertylen;
+    pvalue **pvalues;
+    int numpvalues, pvalues_size;
 } declaration;
 
 typedef struct rulegroup_struct {
-    selector *selectors;
-    declaration *declarations;
+    selector **selectors;
+    int numselectors, selectors_size;
+    declaration **declarations;
+    int numdeclarations, declarations_size;
 } rulegroup;
 
 typedef struct stylesheet_struct {
-    rulegroup *rulegroups;
+    rulegroup **rulegroups;
+    int numrulegroups, rulegroups_size;
 } stylesheet;
+
+static stylesheet *stylesheet_new(void);
+static void stylesheet_delete(stylesheet *sheet);
+static void rulegroup_delete(rulegroup *rgrp);
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
@@ -80,6 +92,12 @@ static int node_text_matches(node *nod, char *text)
 void mincss_construct_stylesheet(mincss_context *context, node *nod)
 {
     int ix;
+
+    stylesheet *sheet = stylesheet_new();
+    if (sheet) {
+	return; /*### memory*/
+    }
+
     for (ix=0; ix<nod->numnodes; ix++) {
         node *subnod = nod->nodes[ix];
         if (subnod->typ == nod_AtRule)
@@ -89,6 +107,9 @@ void mincss_construct_stylesheet(mincss_context *context, node *nod)
         else
             mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
     }
+
+    stylesheet_delete(sheet);
+    /* return sheet; ### */
 }
 
 static void construct_atrule(mincss_context *context, node *nod)
@@ -476,3 +497,39 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
 
     /* ### all ok */
 }
+
+static stylesheet *stylesheet_new(void)
+{
+    stylesheet *sheet = (stylesheet *)malloc(sizeof(stylesheet));
+    if (!sheet)
+	return NULL;
+
+    sheet->rulegroups = NULL;
+    sheet->numrulegroups = 0;
+    sheet->rulegroups_size = 0;
+
+    return sheet;
+}
+
+static void stylesheet_delete(stylesheet *sheet)
+{
+    if (sheet->rulegroups) {
+	int ix;
+
+	for (ix=0; ix<sheet->numrulegroups; ix++) 
+	    rulegroup_delete(sheet->rulegroups[ix]);
+
+	free(sheet->rulegroups);
+	sheet->rulegroups = NULL;
+	sheet->numrulegroups = 0;
+	sheet->rulegroups_size = 0;
+    }
+
+    free(sheet);
+}
+
+static void rulegroup_delete(rulegroup *rgrp)
+{
+    /*###*/
+}
+
