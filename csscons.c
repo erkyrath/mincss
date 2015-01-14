@@ -195,6 +195,7 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
     }
 
     if (pos < end) {
+        /* What happens next depends on whether there's whitespace. */
         int hasspace = 0;
         while (pos < end && node_is_space(nod->nodes[pos])) {
             pos++;
@@ -222,7 +223,27 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
             }
         }
         else {
-            /*### [ combinator? selector] ? */
+            /* Must be nothing, or a selector, or a combinator
+               followed by a selector. */
+            if (pos < end) {
+                int combinator = 0;
+                if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && (node_text_matches(nod->nodes[pos], "+") || node_text_matches(nod->nodes[pos], ">"))) {
+                    combinator = nod->nodes[pos]->text[0];
+                    printf("### combinator %c\n", combinator);
+                    pos++;
+                    while (pos < end && node_is_space(nod->nodes[pos])) {
+                        pos++;
+                        hasspace++;
+                    }
+                }
+                int newpos = pos;
+                if (pos < end) {
+                    newpos = construct_selector(context, nod, pos, end);
+                }
+                if (combinator && newpos == pos)
+                    node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
+                pos = newpos;
+            }
         }
     }
 
