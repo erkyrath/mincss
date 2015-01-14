@@ -7,6 +7,44 @@
 #define node_note_error(context, nod, msg) mincss_note_error_line(context, msg, nod->linenum)
 #define node_is_space(nod) ((nod)->typ == nod_Token && (nod)->toktype == tok_Space)
 
+typedef enum operator_enum {
+    op_None = 0,
+    op_Plus = '+',
+    op_GT = '>',
+    op_Comma = ',',
+    op_Slash = '/',
+} operator;
+
+typedef struct sselector_struct {
+    operator op;
+    int32_t *element;
+    int32_t *classes;
+    /*### attributes, pseudo */
+} sselector;
+
+typedef struct selector_struct {
+    sselector *sselectors;
+} selector;
+
+typedef struct pvalue_struct {
+    operator operator;
+    token tok;
+} pvalue;
+
+typedef struct declaration_struct {
+    int32_t *property;
+    pvalue *pvalues;
+} declaration;
+
+typedef struct rulegroup_struct {
+    selector *selectors;
+    declaration *declarations;
+} rulegroup;
+
+typedef struct stylesheet_struct {
+    rulegroup *rulegroups;
+} stylesheet;
+
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end);
