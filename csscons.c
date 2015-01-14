@@ -498,7 +498,12 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
     /* ### all ok */
 }
 
-static stylesheet *stylesheet_new(void)
+/* The general principle of the stylesheet data structure is that _new
+   functions can fail, returning NULL, as long as they leave the existing
+   structure in a non-broken state. In practice this should never happen
+   anyhow. */
+
+static stylesheet *stylesheet_new()
 {
     stylesheet *sheet = (stylesheet *)malloc(sizeof(stylesheet));
     if (!sheet)
@@ -526,6 +531,38 @@ static void stylesheet_delete(stylesheet *sheet)
     }
 
     free(sheet);
+}
+
+static rulegroup *rulegroup_add(stylesheet *sheet)
+{
+    rulegroup *rgrp = (rulegroup *)malloc(sizeof(rulegroup));
+    if (!rgrp)
+	return NULL;
+
+    rgrp->selectors = NULL;
+    rgrp->numselectors = 0;
+    rgrp->selectors_size = 0;
+    rgrp->declarations = NULL;
+    rgrp->numdeclarations = 0;
+    rgrp->declarations_size = 0;
+
+    if (!sheet->rulegroups) {
+	sheet->rulegroups_size = 4;
+	sheet->rulegroups = (rulegroup **)malloc(sheet->rulegroups_size * sizeof(rulegroup *));
+    }
+    else if (sheet->numrulegroups >= sheet->rulegroups_size) {
+	sheet->rulegroups_size *= 2;
+	sheet->rulegroups = (rulegroup **)realloc(sheet->rulegroups, sheet->rulegroups_size * sizeof(rulegroup *));
+    }
+    if (!sheet->rulegroups) {
+	sheet->numrulegroups = 0;
+	sheet->rulegroups_size = 0;
+	rulegroup_delete(rgrp);
+	return NULL;
+    }
+
+    sheet->rulegroups[sheet->numrulegroups++] = rgrp;
+    return rgrp;
 }
 
 static void rulegroup_delete(rulegroup *rgrp)
