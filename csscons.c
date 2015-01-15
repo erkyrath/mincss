@@ -98,7 +98,7 @@ void mincss_construct_stylesheet(mincss_context *context, node *nod)
 
     stylesheet *sheet = stylesheet_new();
     if (!sheet) {
-	return; /*### memory*/
+        return; /*### memory*/
     }
 
     for (ix=0; ix<nod->numnodes; ix++) {
@@ -553,7 +553,7 @@ static stylesheet *stylesheet_new()
 {
     stylesheet *sheet = (stylesheet *)malloc(sizeof(stylesheet));
     if (!sheet)
-	return NULL;
+        return NULL;
 
     sheet->rulegroups = NULL;
     sheet->numrulegroups = 0;
@@ -565,15 +565,15 @@ static stylesheet *stylesheet_new()
 static void stylesheet_delete(stylesheet *sheet)
 {
     if (sheet->rulegroups) {
-	int ix;
+        int ix;
 
-	for (ix=0; ix<sheet->numrulegroups; ix++) 
-	    rulegroup_delete(sheet->rulegroups[ix]);
+        for (ix=0; ix<sheet->numrulegroups; ix++) 
+            rulegroup_delete(sheet->rulegroups[ix]);
 
-	free(sheet->rulegroups);
-	sheet->rulegroups = NULL;
-	sheet->numrulegroups = 0;
-	sheet->rulegroups_size = 0;
+        free(sheet->rulegroups);
+        sheet->rulegroups = NULL;
+        sheet->numrulegroups = 0;
+        sheet->rulegroups_size = 0;
     }
 
     free(sheet);
@@ -584,26 +584,26 @@ void mincss_stylesheet_dump(stylesheet *sheet)
     printf("Stylesheet:\n");
 
     if (sheet->rulegroups) {
-	int ix;
-	for (ix=0; ix<sheet->numrulegroups; ix++) 
-	    rulegroup_dump(sheet->rulegroups[ix], 1);
+        int ix;
+        for (ix=0; ix<sheet->numrulegroups; ix++) 
+            rulegroup_dump(sheet->rulegroups[ix], 1);
     }
 }
 
 static int stylesheet_add_rulegroup(stylesheet *sheet, rulegroup *rgrp)
 {
     if (!sheet->rulegroups) {
-	sheet->rulegroups_size = 4;
-	sheet->rulegroups = (rulegroup **)malloc(sheet->rulegroups_size * sizeof(rulegroup *));
+        sheet->rulegroups_size = 4;
+        sheet->rulegroups = (rulegroup **)malloc(sheet->rulegroups_size * sizeof(rulegroup *));
     }
     else if (sheet->numrulegroups >= sheet->rulegroups_size) {
-	sheet->rulegroups_size *= 2;
-	sheet->rulegroups = (rulegroup **)realloc(sheet->rulegroups, sheet->rulegroups_size * sizeof(rulegroup *));
+        sheet->rulegroups_size *= 2;
+        sheet->rulegroups = (rulegroup **)realloc(sheet->rulegroups, sheet->rulegroups_size * sizeof(rulegroup *));
     }
     if (!sheet->rulegroups) {
-	sheet->numrulegroups = 0;
-	sheet->rulegroups_size = 0;
-	return 0;
+        sheet->numrulegroups = 0;
+        sheet->rulegroups_size = 0;
+        return 0;
     }
 
     sheet->rulegroups[sheet->numrulegroups++] = rgrp;
@@ -614,7 +614,7 @@ static rulegroup *rulegroup_new()
 {
     rulegroup *rgrp = (rulegroup *)malloc(sizeof(rulegroup));
     if (!rgrp)
-	return NULL;
+        return NULL;
 
     rgrp->selectors = NULL;
     rgrp->numselectors = 0;
