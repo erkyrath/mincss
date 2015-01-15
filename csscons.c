@@ -59,13 +59,20 @@ static int stylesheet_add_rulegroup(stylesheet *sheet, rulegroup *rgrp);
 static rulegroup *rulegroup_new(void);
 static void rulegroup_delete(rulegroup *rgrp);
 static void rulegroup_dump(rulegroup *rgrp, int depth);
+static int rulegroup_add_declaration(rulegroup *rgrp, declaration *decl);
+static selector *selector_new(void);
+static void selector_delete(selector *sel);
+static void selector_dump(selector *sel, int depth);
+static declaration *declaration_new(void);
+static void declaration_delete(declaration *decl);
+static void declaration_dump(declaration *decl, int depth);
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end, rulegroup *rgrp);
 static int construct_selector(mincss_context *context, node *nod, int start, int end);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
-static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
+static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
 
 /* Test whether the text of a node matches the given ASCII string.
@@ -362,14 +369,18 @@ static void construct_declarations(mincss_context *context, node *nod, rulegroup
                         break;
                     valstart++;
                 }
-                construct_declaration(context, nod, start, colonpos, valstart, semipos);
+                declaration *decl = construct_declaration(context, nod, start, colonpos, valstart, semipos);
+                if (decl) {
+                    if (!rulegroup_add_declaration(rgrp, decl))
+                        declaration_delete(decl);
+                }
             }
         }
         start = semipos+1;
     }
 }
 
-static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
+static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
 {
     mincss_dump_node_range(" prop", nod, propstart, propend); /*###*/
     mincss_dump_node_range("  val", nod, valstart, valend); /*###*/
@@ -628,12 +639,137 @@ static rulegroup *rulegroup_new()
 
 static void rulegroup_delete(rulegroup *rgrp)
 {
-    /*###*/
+    if (rgrp->selectors) {
+        int ix;
+
+        for (ix=0; ix<rgrp->numselectors; ix++) 
+            selector_delete(rgrp->selectors[ix]);
+
+        free(rgrp->selectors);
+        rgrp->selectors = NULL;
+        rgrp->numselectors = 0;
+        rgrp->selectors_size = 0;
+    }
+
+    if (rgrp->declarations) {
+        int ix;
+
+        for (ix=0; ix<rgrp->numdeclarations; ix++) 
+            declaration_delete(rgrp->declarations[ix]);
+
+        free(rgrp->declarations);
+        rgrp->declarations = NULL;
+        rgrp->numdeclarations = 0;
+        rgrp->declarations_size = 0;
+    }
+
+    free(rgrp);
 }
 
 static void rulegroup_dump(rulegroup *rgrp, int depth)
 {
     dump_indent(depth);
-    printf("### rulegroup\n");
+    printf("### rulegroup (%d selectors, %d declarations)\n", rgrp->numselectors, rgrp->numdeclarations);
+
+    if (rgrp->selectors) {
+        int ix;
+        for (ix=0; ix<rgrp->numselectors; ix++) 
+            selector_dump(rgrp->selectors[ix], depth+1);
+    }
+    if (rgrp->declarations) {
+        int ix;
+        for (ix=0; ix<rgrp->numdeclarations; ix++) 
+            declaration_dump(rgrp->declarations[ix], depth+1);
+    }
+}
+
+static int rulegroup_add_selector(rulegroup *rgrp, selector *sel)
+{
+    if (!rgrp->selectors) {
+        rgrp->selectors_size = 4;
+        rgrp->selectors = (selector **)malloc(rgrp->selectors_size * sizeof(selector *));
+    }
+    else if (rgrp->numselectors >= rgrp->selectors_size) {
+        rgrp->selectors_size *= 2;
+        rgrp->selectors = (selector **)realloc(rgrp->selectors, rgrp->selectors_size * sizeof(selector *));
+    }
+    if (!rgrp->selectors) {
+        rgrp->numselectors = 0;
+        rgrp->selectors_size = 0;
+        return 0;
+    }
+
+    rgrp->selectors[rgrp->numselectors++] = sel;
+    return 1;
+}
+
+static int rulegroup_add_declaration(rulegroup *rgrp, declaration *decl)
+{
+    if (!rgrp->declarations) {
+        rgrp->declarations_size = 4;
+        rgrp->declarations = (declaration **)malloc(rgrp->declarations_size * sizeof(declaration *));
+    }
+    else if (rgrp->numdeclarations >= rgrp->declarations_size) {
+        rgrp->declarations_size *= 2;
+        rgrp->declarations = (declaration **)realloc(rgrp->declarations, rgrp->declarations_size * sizeof(declaration *));
+    }
+    if (!rgrp->declarations) {
+        rgrp->numdeclarations = 0;
+        rgrp->declarations_size = 0;
+        return 0;
+    }
+
+    rgrp->declarations[rgrp->numdeclarations++] = decl;
+    return 1;
+}
+
+static selector *selector_new()
+{
+    selector *sel = (selector *)malloc(sizeof(selector));
+    if (!sel)
+        return NULL;
+
+    sel->sselectors = NULL;
+    sel->numsselectors = 0;
+    sel->sselectors_size = 0;
+
+    return sel;
+}
+
+static void selector_delete(selector *sel)
+{
     /*###*/
 }
+
+static void selector_dump(selector *sel, int depth)
+{
+    dump_indent(depth);
+    printf("### selector\n");
+}
+
+static declaration *declaration_new()
+{
+    declaration *decl = (declaration *)malloc(sizeof(declaration));
+    if (!decl)
+        return NULL;
+
+    decl->property = NULL;
+    decl->propertylen = 0;
+    decl->pvalues = NULL;
+    decl->numpvalues = 0;
+    decl->pvalues_size = 0;
+
+    return decl;
+}
+
+static void declaration_delete(declaration *decl)
+{
+    /*###*/
+}
+
+static void declaration_dump(declaration *decl, int depth)
+{
+    dump_indent(depth);
+    printf("### declaration\n");
+}
+
