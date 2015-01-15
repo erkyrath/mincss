@@ -101,6 +101,8 @@ typedef struct node_struct {
     int nodes_size;
 } node;
 
+typedef struct stylesheet_struct stylesheet;
+
 /* mincss.c */
 #define mincss_note_error(context, msg) mincss_note_error_line(context, msg, -1)
 extern void mincss_note_error_line(mincss_context *context, char *msg, int linenum);
@@ -117,4 +119,5 @@ extern void mincss_dump_node_range(char *label, node *nod, int start, int end);
 
 /* csscons.c */
 extern void mincss_construct_stylesheet(mincss_context *context, node *nod);
+extern void mincss_stylesheet_dump(stylesheet *sheet);
 

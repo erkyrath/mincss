@@ -48,14 +48,15 @@ typedef struct rulegroup_struct {
     int numdeclarations, declarations_size;
 } rulegroup;
 
-typedef struct stylesheet_struct {
+struct stylesheet_struct {
     rulegroup **rulegroups;
     int numrulegroups, rulegroups_size;
-} stylesheet;
+};
 
 static stylesheet *stylesheet_new(void);
 static void stylesheet_delete(stylesheet *sheet);
-static void stylesheet_dump(stylesheet *sheet);
+static int stylesheet_add_group(stylesheet *sheet, rulegroup *rgrp);
+static rulegroup *rulegroup_new(void);
 static void rulegroup_delete(rulegroup *rgrp);
 static void rulegroup_dump(rulegroup *rgrp, int depth);
 
@@ -563,7 +564,7 @@ static void stylesheet_delete(stylesheet *sheet)
     free(sheet);
 }
 
-static void stylesheet_dump(stylesheet *sheet)
+void mincss_stylesheet_dump(stylesheet *sheet)
 {
     printf("Stylesheet:\n");
 
@@ -574,7 +575,27 @@ static void stylesheet_dump(stylesheet *sheet)
     }
 }
 
-static rulegroup *rulegroup_add(stylesheet *sheet)
+static int stylesheet_add_group(stylesheet *sheet, rulegroup *rgrp)
+{
+    if (!sheet->rulegroups) {
+	sheet->rulegroups_size = 4;
+	sheet->rulegroups = (rulegroup **)malloc(sheet->rulegroups_size * sizeof(rulegroup *));
+    }
+    else if (sheet->numrulegroups >= sheet->rulegroups_size) {
+	sheet->rulegroups_size *= 2;
+	sheet->rulegroups = (rulegroup **)realloc(sheet->rulegroups, sheet->rulegroups_size * sizeof(rulegroup *));
+    }
+    if (!sheet->rulegroups) {
+	sheet->numrulegroups = 0;
+	sheet->rulegroups_size = 0;
+	return 0;
+    }
+
+    sheet->rulegroups[sheet->numrulegroups++] = rgrp;
+    return 1;
+}
+
+static rulegroup *rulegroup_new()
 {
     rulegroup *rgrp = (rulegroup *)malloc(sizeof(rulegroup));
     if (!rgrp)
@@ -587,22 +608,6 @@ static rulegroup *rulegroup_add(stylesheet *sheet)
     rgrp->numdeclarations = 0;
     rgrp->declarations_size = 0;
 
-    if (!sheet->rulegroups) {
-	sheet->rulegroups_size = 4;
-	sheet->rulegroups = (rulegroup **)malloc(sheet->rulegroups_size * sizeof(rulegroup *));
-    }
-    else if (sheet->numrulegroups >= sheet->rulegroups_size) {
-	sheet->rulegroups_size *= 2;
-	sheet->rulegroups = (rulegroup **)realloc(sheet->rulegroups, sheet->rulegroups_size * sizeof(rulegroup *));
-    }
-    if (!sheet->rulegroups) {
-	sheet->numrulegroups = 0;
-	sheet->rulegroups_size = 0;
-	rulegroup_delete(rgrp);
-	return NULL;
-    }
-
-    sheet->rulegroups[sheet->numrulegroups++] = rgrp;
     return rgrp;
 }
 
