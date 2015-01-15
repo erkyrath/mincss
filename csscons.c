@@ -583,9 +583,9 @@ static void stylesheet_delete(stylesheet *sheet)
 
         free(sheet->rulegroups);
         sheet->rulegroups = NULL;
-        sheet->numrulegroups = 0;
-        sheet->rulegroups_size = 0;
     }
+    sheet->numrulegroups = 0;
+    sheet->rulegroups_size = 0;
 
     free(sheet);
 }
@@ -647,9 +647,9 @@ static void rulegroup_delete(rulegroup *rgrp)
 
         free(rgrp->selectors);
         rgrp->selectors = NULL;
-        rgrp->numselectors = 0;
-        rgrp->selectors_size = 0;
     }
+    rgrp->numselectors = 0;
+    rgrp->selectors_size = 0;
 
     if (rgrp->declarations) {
         int ix;
@@ -659,9 +659,9 @@ static void rulegroup_delete(rulegroup *rgrp)
 
         free(rgrp->declarations);
         rgrp->declarations = NULL;
-        rgrp->numdeclarations = 0;
-        rgrp->declarations_size = 0;
     }
+    rgrp->numdeclarations = 0;
+    rgrp->declarations_size = 0;
 
     free(rgrp);
 }
