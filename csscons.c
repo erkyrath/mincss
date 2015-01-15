@@ -97,7 +97,7 @@ void mincss_construct_stylesheet(mincss_context *context, node *nod)
     int ix;
 
     stylesheet *sheet = stylesheet_new();
-    if (sheet) {
+    if (!sheet) {
 	return; /*### memory*/
     }
 
@@ -111,6 +111,7 @@ void mincss_construct_stylesheet(mincss_context *context, node *nod)
             mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
     }
 
+    mincss_stylesheet_dump(sheet);
     stylesheet_delete(sheet);
     /* return sheet; ### */
 }
