@@ -7,6 +7,56 @@
 #define node_note_error(context, nod, msg) mincss_note_error_line(context, msg, nod->linenum)
 #define node_is_space(nod) ((nod)->typ == nod_Token && (nod)->toktype == tok_Space)
 
+typedef enum operator_enum {
+    op_None = 0,
+    op_Plus = '+',
+    op_GT = '>',
+    op_Comma = ',',
+    op_Slash = '/',
+} operator;
+
+typedef struct sselector_struct {
+    operator op;
+    int32_t *element;
+    int elementlen;
+    int32_t **classes;
+    int numclasses, classes_size;
+    /*### attributes, pseudo */
+} sselector;
+
+typedef struct selector_struct {
+    sselector **sselectors;
+    int numsselectors, sselectors_size;
+} selector;
+
+typedef struct pvalue_struct {
+    operator operator;
+    token tok;
+} pvalue;
+
+typedef struct declaration_struct {
+    int32_t *property;
+    int propertylen;
+    pvalue **pvalues;
+    int numpvalues, pvalues_size;
+} declaration;
+
+typedef struct rulegroup_struct {
+    selector **selectors;
+    int numselectors, selectors_size;
+    declaration **declarations;
+    int numdeclarations, declarations_size;
+} rulegroup;
+
+typedef struct stylesheet_struct {
+    rulegroup **rulegroups;
+    int numrulegroups, rulegroups_size;
+} stylesheet;
+
+static stylesheet *stylesheet_new(void);
+static void stylesheet_delete(stylesheet *sheet);
+static void rulegroup_delete(rulegroup *rgrp);
+
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end);
@@ -42,6 +92,12 @@ static int node_text_matches(node *nod, char *text)
 void mincss_construct_stylesheet(mincss_context *context, node *nod)
 {
     int ix;
+
+    stylesheet *sheet = stylesheet_new();
+    if (sheet) {
+	return; /*### memory*/
+    }
+
     for (ix=0; ix<nod->numnodes; ix++) {
         node *subnod = nod->nodes[ix];
         if (subnod->typ == nod_AtRule)
@@ -51,6 +107,9 @@ void mincss_construct_stylesheet(mincss_context *context, node *nod)
         else
             mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
     }
+
+    stylesheet_delete(sheet);
+    /* return sheet; ### */
 }
 
 static void construct_atrule(mincss_context *context, node *nod)
@@ -459,3 +518,76 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
 
     /* ### all ok */
 }
+
+/* The general principle of the stylesheet data structure is that _new
+   functions can fail, returning NULL, as long as they leave the existing
+   structure in a non-broken state. In practice this should never happen
+   anyhow. */
+
+static stylesheet *stylesheet_new()
+{
+    stylesheet *sheet = (stylesheet *)malloc(sizeof(stylesheet));
+    if (!sheet)
+	return NULL;
+
+    sheet->rulegroups = NULL;
+    sheet->numrulegroups = 0;
+    sheet->rulegroups_size = 0;
+
+    return sheet;
+}
+
+static void stylesheet_delete(stylesheet *sheet)
+{
+    if (sheet->rulegroups) {
+	int ix;
+
+	for (ix=0; ix<sheet->numrulegroups; ix++) 
+	    rulegroup_delete(sheet->rulegroups[ix]);
+
+	free(sheet->rulegroups);
+	sheet->rulegroups = NULL;
+	sheet->numrulegroups = 0;
+	sheet->rulegroups_size = 0;
+    }
+
+    free(sheet);
+}
+
+static rulegroup *rulegroup_add(stylesheet *sheet)
+{
+    rulegroup *rgrp = (rulegroup *)malloc(sizeof(rulegroup));
+    if (!rgrp)
+	return NULL;
+
+    rgrp->selectors = NULL;
+    rgrp->numselectors = 0;
+    rgrp->selectors_size = 0;
+    rgrp->declarations = NULL;
+    rgrp->numdeclarations = 0;
+    rgrp->declarations_size = 0;
+
+    if (!sheet->rulegroups) {
+	sheet->rulegroups_size = 4;
+	sheet->rulegroups = (rulegroup **)malloc(sheet->rulegroups_size * sizeof(rulegroup *));
+    }
+    else if (sheet->numrulegroups >= sheet->rulegroups_size) {
+	sheet->rulegroups_size *= 2;
+	sheet->rulegroups = (rulegroup **)realloc(sheet->rulegroups, sheet->rulegroups_size * sizeof(rulegroup *));
+    }
+    if (!sheet->rulegroups) {
+	sheet->numrulegroups = 0;
+	sheet->rulegroups_size = 0;
+	rulegroup_delete(rgrp);
+	return NULL;
+    }
+
+    sheet->rulegroups[sheet->numrulegroups++] = rgrp;
+    return rgrp;
+}
+
+static void rulegroup_delete(rulegroup *rgrp)
+{
+    /*###*/
+}
+
