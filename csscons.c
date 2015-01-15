@@ -55,16 +55,16 @@ struct stylesheet_struct {
 
 static stylesheet *stylesheet_new(void);
 static void stylesheet_delete(stylesheet *sheet);
-static int stylesheet_add_group(stylesheet *sheet, rulegroup *rgrp);
+static int stylesheet_add_rulegroup(stylesheet *sheet, rulegroup *rgrp);
 static rulegroup *rulegroup_new(void);
 static void rulegroup_delete(rulegroup *rgrp);
 static void rulegroup_dump(rulegroup *rgrp, int depth);
 
 static void construct_atrule(mincss_context *context, node *nod);
-static void construct_rulesets(mincss_context *context, node *nod);
-static void construct_selectors(mincss_context *context, node *nod, int start, int end);
+static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet);
+static void construct_selectors(mincss_context *context, node *nod, int start, int end, rulegroup *rgrp);
 static int construct_selector(mincss_context *context, node *nod, int start, int end);
-static void construct_declarations(mincss_context *context, node *nod);
+static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static void construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
 
@@ -106,7 +106,7 @@ void mincss_construct_stylesheet(mincss_context *context, node *nod)
         if (subnod->typ == nod_AtRule)
             construct_atrule(context, subnod);
         else if (subnod->typ == nod_TopLevel)
-            construct_rulesets(context, subnod);
+            construct_rulesets(context, subnod, sheet);
         else
             mincss_note_error(context, "(Internal) Invalid node type in construct_stylesheet");
     }
@@ -137,7 +137,7 @@ static void construct_atrule(mincss_context *context, node *nod)
     /* Unrecognized at-rule; ignore. */
 }
 
-static void construct_rulesets(mincss_context *context, node *nod)
+static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet)
 {
     /* Ruleset content parses as "a bunch of stuff that isn't a block"
        (the selector) followed by a block. */
@@ -164,14 +164,28 @@ static void construct_rulesets(mincss_context *context, node *nod)
             continue;
         }
 
-        construct_selectors(context, nod, start, blockpos);
+        rulegroup *rgrp = rulegroup_new();
+        if (!rgrp) {
+            return; /*### memory*/
+        }
+
+        construct_selectors(context, nod, start, blockpos, rgrp);
 
         node *blocknod = nod->nodes[blockpos];
-        construct_declarations(context, blocknod);
+        construct_declarations(context, blocknod, rgrp);
+
+        if (!rgrp->numselectors || !rgrp->numdeclarations) {
+            /* Empty, skip. */
+            rulegroup_delete(rgrp);
+        }
+        else {
+            if (!stylesheet_add_rulegroup(sheet, rgrp))
+                rulegroup_delete(rgrp);
+        }
     }
 }
 
-static void construct_selectors(mincss_context *context, node *nod, int start, int end)
+static void construct_selectors(mincss_context *context, node *nod, int start, int end, rulegroup *rgrp)
 {
     int pos = start;
 
@@ -313,7 +327,7 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
     return pos;
 }
 
-static void construct_declarations(mincss_context *context, node *nod)
+static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp)
 {
     int start = 0;
     int semipos = -1;
@@ -576,7 +590,7 @@ void mincss_stylesheet_dump(stylesheet *sheet)
     }
 }
 
-static int stylesheet_add_group(stylesheet *sheet, rulegroup *rgrp)
+static int stylesheet_add_rulegroup(stylesheet *sheet, rulegroup *rgrp)
 {
     if (!sheet->rulegroups) {
 	sheet->rulegroups_size = 4;
