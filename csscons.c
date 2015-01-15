@@ -35,6 +35,7 @@ typedef struct pvalue_struct {
 } pvalue;
 
 typedef struct declaration_struct {
+    int important;
     int32_t *property;
     int propertylen;
     pvalue **pvalues;
@@ -74,6 +75,7 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
+static int32_t *copy_text(node *nod, int32_t *lenref);
 
 /* Test whether the text of a node matches the given ASCII string.
    (Case-insensitive.) */
@@ -389,13 +391,13 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
 
     if (propend <= propstart) {
         node_note_error(context, nod->nodes[propstart], "Declaration lacks property");
-        return;
+        return NULL;
     }
     if (valend <= propstart || valend <= valstart) {
         /* We mark this error at propstart to be extra careful about
            array overflow. */
         node_note_error(context, nod->nodes[propstart], "Declaration lacks value");
-        return;
+        return NULL;
     }
 
     /* The property part must be a single identifier (plus optional
@@ -410,13 +412,19 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
 
     if (propend - propstart != 1 || nod->nodes[propstart]->typ != nod_Token || nod->nodes[propstart]->toktype != tok_Ident) {
         node_note_error(context, nod->nodes[propstart], "Declaration property is not an identifier");
-        return;
+        return NULL;
+    }
+
+    declaration *decl = declaration_new();
+    decl->property = copy_text(nod->nodes[propstart], &decl->propertylen);
+    if (!decl->property) {
+        declaration_delete(decl);
+        return NULL; /*### memory*/
     }
 
     /* The "!important" flag is a special case. It's always at the
        end of the value. We try backing up through that. It's a nuisance,
        because there can be whitespace. */
-    int important = 0;
     {
         int counter = 0;
         ix = valend;
@@ -438,7 +446,7 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
             }
             if (counter >= 2) {
                 valend = ix;
-                important = 1;
+                decl->important = 1;
                 break;
             }
             ix--;
@@ -446,6 +454,7 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
     }
 
     construct_expr(context, nod, valstart, valend, 1);
+    return decl;
 }
 
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel)
@@ -546,6 +555,39 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
     }
 
     /* ### all ok */
+}
+
+static int32_t *copy_text(node *nod, int32_t *lenref)
+{
+    if (!nod->text || !nod->textlen) {
+        /* Should report an internal error here, but there's no context. */
+        return NULL;
+    }
+
+    int32_t *res = (int32_t *)malloc(sizeof(int32_t) * nod->textlen);
+    if (!res)
+        return NULL;
+
+    memcpy(res, nod->text, sizeof(int32_t) * nod->textlen);
+    *lenref = nod->textlen;
+    return res;
+}
+
+static void dump_text(int32_t *text, int32_t len)
+{
+    if (!text) {
+        printf("(null)");
+        return;
+    }
+
+    int ix;
+    for (ix=0; ix<len; ix++) {
+        int32_t ch = text[ix];
+        if (ch < 32)
+            printf("^%c", ch+64);
+        else
+            mincss_putchar_utf8(ch, stdout);
+    }
 }
 
 static void dump_indent(int val)
@@ -758,6 +800,7 @@ static declaration *declaration_new()
     decl->pvalues = NULL;
     decl->numpvalues = 0;
     decl->pvalues_size = 0;
+    decl->important = 0;
 
     return decl;
 }
@@ -770,6 +813,10 @@ static void declaration_delete(declaration *decl)
 static void declaration_dump(declaration *decl, int depth)
 {
     dump_indent(depth);
-    printf("### declaration\n");
+    printf("### declaration: ");
+    dump_text(decl->property, decl->propertylen);
+    if (decl->important)
+        printf(" !IMPORTANT");
+    printf("\n");
 }
 
