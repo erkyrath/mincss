@@ -55,7 +55,9 @@ typedef struct stylesheet_struct {
 
 static stylesheet *stylesheet_new(void);
 static void stylesheet_delete(stylesheet *sheet);
+static void stylesheet_dump(stylesheet *sheet);
 static void rulegroup_delete(rulegroup *rgrp);
+static void rulegroup_dump(rulegroup *rgrp, int depth);
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod);
@@ -519,6 +521,13 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
     /* ### all ok */
 }
 
+static void dump_indent(int val)
+{
+    int ix;
+    for (ix=0; ix<val; ix++)
+        putchar(' ');
+}
+
 /* The general principle of the stylesheet data structure is that _new
    functions can fail, returning NULL, as long as they leave the existing
    structure in a non-broken state. In practice this should never happen
@@ -552,6 +561,17 @@ static void stylesheet_delete(stylesheet *sheet)
     }
 
     free(sheet);
+}
+
+static void stylesheet_dump(stylesheet *sheet)
+{
+    printf("Stylesheet:\n");
+
+    if (sheet->rulegroups) {
+	int ix;
+	for (ix=0; ix<sheet->numrulegroups; ix++) 
+	    rulegroup_dump(sheet->rulegroups[ix], 1);
+    }
 }
 
 static rulegroup *rulegroup_add(stylesheet *sheet)
@@ -591,3 +611,9 @@ static void rulegroup_delete(rulegroup *rgrp)
     /*###*/
 }
 
+static void rulegroup_dump(rulegroup *rgrp, int depth)
+{
+    dump_indent(depth);
+    printf("### rulegroup\n");
+    /*###*/
+}
