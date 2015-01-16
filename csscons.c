@@ -67,6 +67,9 @@ static void selector_dump(selector *sel, int depth);
 static declaration *declaration_new(void);
 static void declaration_delete(declaration *decl);
 static void declaration_dump(declaration *decl, int depth);
+static pvalue *pvalue_new(void);
+static void pvalue_delete(pvalue *pval);
+static void pvalue_dump(pvalue *pval, int depth);
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet);
@@ -780,13 +783,31 @@ static selector *selector_new()
 
 static void selector_delete(selector *sel)
 {
-    /*###*/
+    if (sel->sselectors) {
+        int ix;
+
+        for (ix=0; ix<sel->numsselectors; ix++) 
+            sselector_delete(sel->sselectors[ix]);
+
+        free(sel->sselectors);
+        sel->sselectors = NULL;
+    }
+    sel->numsselectors = 0;
+    sel->sselectors_size = 0;
+
+    free(sel);
 }
 
 static void selector_dump(selector *sel, int depth)
 {
     dump_indent(depth);
     printf("### selector\n");
+
+    if (sel->sselectors) {
+        int ix;
+        for (ix=0; ix<sel->numsselectors; ix++) 
+            sselector_dump(sel->sselectors[ix], depth+1);
+    }
 }
 
 static declaration *declaration_new()
@@ -807,7 +828,25 @@ static declaration *declaration_new()
 
 static void declaration_delete(declaration *decl)
 {
-    /*###*/
+    if (decl->property) {
+        free(decl->property);
+        decl->property = NULL;
+    }
+    decl->propertylen = 0;
+
+    if (decl->pvalues) {
+        int ix;
+
+        for (ix=0; ix<decl->numpvalues; ix++) 
+            pvalue_delete(decl->pvalues[ix]);
+
+        free(decl->pvalues);
+        decl->pvalues = NULL;
+    }
+    decl->numpvalues = 0;
+    decl->pvalues_size = 0;
+
+    free(decl);
 }
 
 static void declaration_dump(declaration *decl, int depth)
@@ -818,5 +857,41 @@ static void declaration_dump(declaration *decl, int depth)
     if (decl->important)
         printf(" !IMPORTANT");
     printf("\n");
+
+    if (decl->pvalues) {
+        int ix;
+        for (ix=0; ix<decl->numpvalues; ix++) 
+            pvalue_dump(decl->pvalues[ix], depth+1);
+    }
+}
+
+static pvalue *pvalue_new()
+{
+    pvalue *pval = (pvalue *)malloc(sizeof(pvalue));
+    if (!pval)
+        return NULL;
+
+    memset(&pval->tok, 0, sizeof(pval->tok));
+    pval->tok.text = NULL;
+
+    return pval;
+}
+
+static void pvalue_delete(pvalue *pval)
+{
+    if (pval->tok.text) {
+        free(pval->tok.text);
+        pval->tok.text = NULL;
+    }
+    pval->tok.len = 0;
+    pval->tok.typ = tok_EOF;
+
+    free(pval);
+}
+
+static void pvalue_dump(pvalue *pval, int depth)
+{
+    dump_indent(depth);
+    printf("### pvalue\n");
 }
 
