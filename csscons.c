@@ -88,7 +88,7 @@ static void ustring_delete(ustring *ustr);
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end, rulegroup *rgrp);
-static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, selector *sel);
+static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
@@ -236,7 +236,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 
         if (ix > pos) {
             int finalpos = pos;
-            construct_selector(context, nod, pos, ix, &finalpos, sel);
+            construct_selector(context, nod, pos, ix, &finalpos, op_None, sel);
             if (finalpos < ix)
                 node_note_error(context, nod->nodes[finalpos], "Unrecognized text in selector");
         }
@@ -254,7 +254,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
         selector_delete(sel);
 }
 
-static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, selector *sel)
+static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel)
 {
     mincss_dump_node_range("selector", nod, start, end); /*###*/
 
@@ -268,6 +268,8 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
         /*### memory */
         /* But we keep parsing, so as not to get stuck in an infinite loop. */
     }
+    if (ssel)
+        ssel->op = op;
 
     int has_element = 0;
     if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], "*")) {
@@ -338,8 +340,14 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
             /* Must be a combinator (+/>) followed by another selector. */
             if (pos < end) {
                 if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && (node_text_matches(nod->nodes[pos], "+") || node_text_matches(nod->nodes[pos], ">"))) {
-                    int combinator = nod->nodes[pos]->text[0];
-                    printf("### combinator %c\n", combinator);
+                    operator combinator = op_None;
+                    int32_t opch = nod->nodes[pos]->text[0];
+                    if (opch == '+')
+                        combinator = op_Plus;
+                    else if (opch == '>')
+                        combinator = op_GT;
+                    else
+                        node_note_error(context, nod->nodes[pos], "(Internal) Unrecognized operator character");
                     pos++;
                     while (pos < end && node_is_space(nod->nodes[pos])) {
                         pos++;
@@ -347,7 +355,7 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
                     }
                     int newpos = pos;
                     if (pos < end) {
-                        construct_selector(context, nod, pos, end, &newpos, sel);
+                        construct_selector(context, nod, pos, end, &newpos, combinator, sel);
                     }
                     if (newpos == pos)
                         node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
@@ -359,10 +367,15 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
             /* Must be nothing, or a selector, or a combinator
                followed by a selector. */
             if (pos < end) {
-                int combinator = 0;
+                operator combinator = op_None;
                 if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && (node_text_matches(nod->nodes[pos], "+") || node_text_matches(nod->nodes[pos], ">"))) {
-                    combinator = nod->nodes[pos]->text[0];
-                    printf("### combinator %c\n", combinator);
+                    int32_t opch = nod->nodes[pos]->text[0];
+                    if (opch == '+')
+                        combinator = op_Plus;
+                    else if (opch == '>')
+                        combinator = op_GT;
+                    else
+                        node_note_error(context, nod->nodes[pos], "(Internal) Unrecognized operator character");
                     pos++;
                     while (pos < end && node_is_space(nod->nodes[pos])) {
                         pos++;
@@ -371,7 +384,7 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
                 }
                 int newpos = pos;
                 if (pos < end) {
-                    construct_selector(context, nod, pos, end, &newpos, sel);
+                    construct_selector(context, nod, pos, end, &newpos, combinator, sel);
                 }
                 if (combinator && newpos == pos)
                     node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
