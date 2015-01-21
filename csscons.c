@@ -26,6 +26,8 @@ typedef struct selectel_struct {
     int elementlen;
     ustring **classes;
     int numclasses, classes_size;
+    ustring **hashes;
+    int numhashes, hashes_size;
     /*### attributes, pseudo */
 } selectel;
 
@@ -75,6 +77,7 @@ static selectel *selectel_new(void);
 static void selectel_delete(selectel *ssel);
 static void selectel_dump(selectel *ssel, int depth);
 static int selectel_add_class(selectel *ssel, ustring *ustr);
+static int selectel_add_hash(selectel *ssel, ustring *ustr);
 static declaration *declaration_new(void);
 static void declaration_delete(declaration *decl);
 static void declaration_dump(declaration *decl, int depth);
@@ -289,7 +292,13 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
     while (pos < end) {
         if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Hash) {
             /* ### hash */
-            printf("### hash\n");
+            if (ssel) {
+                ustring *ustr = ustring_new_from_node(nod->nodes[pos]);
+                if (ustr) {
+                    if (!selectel_add_hash(ssel, ustr))
+                        ustring_delete(ustr);
+                }
+            }
             pos++;
             count++;
         }
@@ -899,6 +908,9 @@ static selectel *selectel_new()
     ssel->classes = NULL;
     ssel->numclasses = 0;
     ssel->classes_size = 0;
+    ssel->hashes = NULL;
+    ssel->numhashes = 0;
+    ssel->hashes_size = 0;
 
     return ssel;
 }
@@ -910,6 +922,18 @@ static void selectel_delete(selectel *ssel)
         ssel->element = NULL;
     }
     ssel->elementlen = 0;
+
+    if (ssel->hashes) {
+        int ix;
+
+        for (ix=0; ix<ssel->numhashes; ix++) 
+            ustring_delete(ssel->hashes[ix]);
+
+        free(ssel->hashes);
+        ssel->hashes = NULL;
+    }
+    ssel->numhashes = 0;
+    ssel->hashes_size = 0;
 
     if (ssel->classes) {
         int ix;
@@ -942,6 +966,16 @@ static void selectel_dump(selectel *ssel, int depth)
         printf("\n");
     }
 
+    if (ssel->hashes) {
+        int ix;
+        for (ix=0; ix<ssel->numhashes; ix++) {
+            dump_indent(depth+1);
+            printf("Hash: ");
+            dump_text(ssel->hashes[ix]->text, ssel->hashes[ix]->len);
+            printf("\n");
+        }
+    }
+    
     if (ssel->classes) {
         int ix;
         for (ix=0; ix<ssel->numclasses; ix++) {
@@ -951,7 +985,7 @@ static void selectel_dump(selectel *ssel, int depth)
             printf("\n");
         }
     }
-    
+
 }
 
 static int selectel_add_class(selectel *ssel, ustring *ustr)
@@ -971,6 +1005,26 @@ static int selectel_add_class(selectel *ssel, ustring *ustr)
     }
 
     ssel->classes[ssel->numclasses++] = ustr;
+    return 1;
+}
+
+static int selectel_add_hash(selectel *ssel, ustring *ustr)
+{
+    if (!ssel->hashes) {
+        ssel->hashes_size = 4;
+        ssel->hashes = (ustring **)malloc(ssel->hashes_size * sizeof(ustring *));
+    }
+    else if (ssel->numhashes >= ssel->hashes_size) {
+        ssel->hashes_size *= 2;
+        ssel->hashes = (ustring **)realloc(ssel->hashes, ssel->hashes_size * sizeof(ustring *));
+    }
+    if (!ssel->hashes) {
+        ssel->numhashes = 0;
+        ssel->hashes_size = 0;
+        return 0;
+    }
+
+    ssel->hashes[ssel->numhashes++] = ustr;
     return 1;
 }
 
