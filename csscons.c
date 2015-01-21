@@ -813,6 +813,50 @@ static void selector_dump(selector *sel, int depth)
     }
 }
 
+static selectel *selectel_new()
+{
+    selectel *ssel = (selectel *)malloc(sizeof(selectel));
+    if (!ssel)
+        return NULL;
+
+    ssel->element = NULL;
+    ssel->elementlen = 0;
+    ssel->classes = NULL;
+    ssel->numclasses = 0;
+    ssel->classes_size = 0;
+
+    return ssel;
+}
+
+static void selectel_delete(selectel *ssel)
+{
+    if (ssel->element) {
+        free(ssel->element);
+        ssel->element = NULL;
+    }
+    ssel->elementlen = 0;
+
+    if (ssel->classes) {
+        int ix;
+
+        for (ix=0; ix<ssel->numclasses; ix++) 
+            free(ssel->classes[ix]);
+
+        free(ssel->classes);
+        ssel->classes = NULL;
+    }
+    ssel->numclasses = 0;
+    ssel->classes_size = 0;
+
+    free(ssel);
+}
+
+static void selectel_dump(selectel *ssel, int depth)
+{
+    dump_indent(depth);
+    printf("### selectel\n");
+}
+
 static declaration *declaration_new()
 {
     declaration *decl = (declaration *)malloc(sizeof(declaration));
