@@ -15,6 +15,11 @@ typedef enum operator_enum {
     op_Slash = '/',
 } operator;
 
+typedef struct ustring_struct {
+    int32_t *text;
+    int len;
+} ustring;
+
 typedef struct selectel_struct {
     operator op;
     int32_t *element;
@@ -61,6 +66,7 @@ static rulegroup *rulegroup_new(void);
 static void rulegroup_delete(rulegroup *rgrp);
 static void rulegroup_dump(rulegroup *rgrp, int depth);
 static int rulegroup_add_declaration(rulegroup *rgrp, declaration *decl);
+static int rulegroup_add_selector(rulegroup *rgrp, selector *sel);
 static selector *selector_new(void);
 static void selector_delete(selector *sel);
 static void selector_dump(selector *sel, int depth);
@@ -73,11 +79,14 @@ static void declaration_dump(declaration *decl, int depth);
 static pvalue *pvalue_new(void);
 static void pvalue_delete(pvalue *pval);
 static void pvalue_dump(pvalue *pval, int depth);
+static ustring *ustring_new(void);
+static ustring *ustring_new_from_node(node *nod);
+static void ustring_delete(ustring *ustr);
 
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end, rulegroup *rgrp);
-static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref);
+static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, selector *sel);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
@@ -204,6 +213,11 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 {
     int pos = start;
 
+    selector *sel = selector_new();
+    if (!sel) {
+        return; /*### memory*/
+    }
+
     /* Split the range by commas; each is a selector. */
     while (pos < end) {
         if (node_is_space(nod->nodes[pos])) {
@@ -220,7 +234,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 
         if (ix > pos) {
             int finalpos = pos;
-            construct_selector(context, nod, pos, ix, &finalpos);
+            construct_selector(context, nod, pos, ix, &finalpos, sel);
             if (finalpos < ix)
                 node_note_error(context, nod->nodes[finalpos], "Unrecognized text in selector");
         }
@@ -229,9 +243,16 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
         }
         pos = ix+1;
     }
+
+    if (!sel->numselectels) {
+        selector_delete(sel);
+        return;
+    }
+    if (!rulegroup_add_selector(rgrp, sel))
+        selector_delete(sel);
 }
 
-static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref)
+static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, selector *sel)
 {
     mincss_dump_node_range("selector", nod, start, end); /*###*/
 
@@ -240,16 +261,22 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
     /* Start by parsing a simple selector. This is a chain of elements,
        classes, etc with no top-level whitespace. */
 
+    selectel *ssel = selectel_new();
+    if (!ssel) {
+        /*### memory */
+        /* But we keep parsing, so as not to get stuck in an infinite loop. */
+    }
+
     int has_element = 0;
     if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], "*")) {
-        /*### asterisk */
-        printf("### element asterisk\n");
+        if (ssel)
+            ssel->element = copy_text(nod->nodes[pos], &ssel->elementlen);
         pos++;
         has_element = 1;
     }
     else if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Ident) {
-        /* ### element-name */
-        printf("### element ident\n");
+        if (ssel)
+            ssel->element = copy_text(nod->nodes[pos], &ssel->elementlen);
         pos++;
         has_element = 1;
     }
@@ -308,7 +335,7 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
                     }
                     int newpos = pos;
                     if (pos < end) {
-                        construct_selector(context, nod, pos, end, &newpos);
+                        construct_selector(context, nod, pos, end, &newpos, sel);
                     }
                     if (newpos == pos)
                         node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
@@ -332,7 +359,7 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
                 }
                 int newpos = pos;
                 if (pos < end) {
-                    construct_selector(context, nod, pos, end, &newpos);
+                    construct_selector(context, nod, pos, end, &newpos, sel);
                 }
                 if (combinator && newpos == pos)
                     node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
@@ -944,3 +971,39 @@ static void pvalue_dump(pvalue *pval, int depth)
     printf("### pvalue\n");
 }
 
+static ustring *ustring_new(void)
+{
+    ustring *ustr = (ustring *)malloc(sizeof(ustring));
+    if (!ustr)
+        return NULL;
+
+    ustr->text = NULL;
+    ustr->len = 0;
+
+    return ustr;
+}
+
+static ustring *ustring_new_from_node(node *nod)
+{
+    ustring *ustr = ustring_new();
+    if (!ustr)
+        return NULL;
+
+    ustr->text = copy_text(nod, &ustr->len);
+    if (!ustr->text) {
+        ustring_delete(ustr);
+        return NULL;
+    }
+
+    return ustr;
+}
+
+static void ustring_delete(ustring *ustr)
+{
+    if (ustr->text) {
+        free(ustr->text);
+        ustr->text = NULL;
+    }
+
+    free(ustr);
+}
