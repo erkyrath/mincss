@@ -24,7 +24,7 @@ typedef struct selectel_struct {
     operator op;
     int32_t *element;
     int elementlen;
-    int32_t **classes;
+    ustring **classes;
     int numclasses, classes_size;
     /*### attributes, pseudo */
 } selectel;
@@ -35,7 +35,7 @@ typedef struct selector_struct {
 } selector;
 
 typedef struct pvalue_struct {
-    operator operator;
+    operator op;
     token tok;
 } pvalue;
 
@@ -70,9 +70,11 @@ static int rulegroup_add_selector(rulegroup *rgrp, selector *sel);
 static selector *selector_new(void);
 static void selector_delete(selector *sel);
 static void selector_dump(selector *sel, int depth);
+static int selector_add_selectel(selector *sel, selectel *ssel);
 static selectel *selectel_new(void);
 static void selectel_delete(selectel *ssel);
 static void selectel_dump(selectel *ssel, int depth);
+static int selectel_add_class(selectel *ssel, ustring *ustr);
 static declaration *declaration_new(void);
 static void declaration_delete(declaration *decl);
 static void declaration_dump(declaration *decl, int depth);
@@ -291,8 +293,13 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
         }
         else if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], ".")
                  && pos+1 < end && nod->nodes[pos+1]->typ == nod_Token && nod->nodes[pos+1]->toktype == tok_Ident) {
-            /*### class */
-            printf("### class\n");
+            if (ssel) {
+                ustring *ustr = ustring_new_from_node(nod->nodes[pos]);
+                if (ustr) {
+                    if (!selectel_add_class(ssel, ustr))
+                        ustring_delete(ustr);
+                }
+            }
             pos += 2;
             count++;
         }
@@ -313,6 +320,11 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
     
     if (!has_element && !count) {
         node_note_error(context, nod->nodes[start], "No selector found");
+    }
+
+    if (ssel) {
+        if (!selector_add_selectel(sel, ssel))
+            selectel_delete(ssel);
     }
 
     if (pos < end) {
@@ -842,12 +854,33 @@ static void selector_dump(selector *sel, int depth)
     }
 }
 
+static int selector_add_selectel(selector *sel, selectel *ssel)
+{
+    if (!sel->selectels) {
+        sel->selectels_size = 4;
+        sel->selectels = (selectel **)malloc(sel->selectels_size * sizeof(selectel *));
+    }
+    else if (sel->numselectels >= sel->selectels_size) {
+        sel->selectels_size *= 2;
+        sel->selectels = (selectel **)realloc(sel->selectels, sel->selectels_size * sizeof(selectel *));
+    }
+    if (!sel->selectels) {
+        sel->numselectels = 0;
+        sel->selectels_size = 0;
+        return 0;
+    }
+
+    sel->selectels[sel->numselectels++] = ssel;
+    return 1;
+}
+
 static selectel *selectel_new()
 {
     selectel *ssel = (selectel *)malloc(sizeof(selectel));
     if (!ssel)
         return NULL;
 
+    ssel->op = op_None;
     ssel->element = NULL;
     ssel->elementlen = 0;
     ssel->classes = NULL;
@@ -869,7 +902,7 @@ static void selectel_delete(selectel *ssel)
         int ix;
 
         for (ix=0; ix<ssel->numclasses; ix++) 
-            free(ssel->classes[ix]);
+            ustring_delete(ssel->classes[ix]);
 
         free(ssel->classes);
         ssel->classes = NULL;
@@ -884,6 +917,26 @@ static void selectel_dump(selectel *ssel, int depth)
 {
     dump_indent(depth);
     printf("### selectel\n");
+}
+
+static int selectel_add_class(selectel *ssel, ustring *ustr)
+{
+    if (!ssel->classes) {
+        ssel->classes_size = 4;
+        ssel->classes = (ustring **)malloc(ssel->classes_size * sizeof(ustring *));
+    }
+    else if (ssel->numclasses >= ssel->classes_size) {
+        ssel->classes_size *= 2;
+        ssel->classes = (ustring **)realloc(ssel->classes, ssel->classes_size * sizeof(ustring *));
+    }
+    if (!ssel->classes) {
+        ssel->numclasses = 0;
+        ssel->classes_size = 0;
+        return 0;
+    }
+
+    ssel->classes[ssel->numclasses++] = ustr;
+    return 1;
 }
 
 static declaration *declaration_new()
@@ -946,6 +999,8 @@ static pvalue *pvalue_new()
     pvalue *pval = (pvalue *)malloc(sizeof(pvalue));
     if (!pval)
         return NULL;
+
+    pval->op = op_None;
 
     memset(&pval->tok, 0, sizeof(pval->tok));
     pval->tok.text = NULL;
