@@ -15,18 +15,18 @@ typedef enum operator_enum {
     op_Slash = '/',
 } operator;
 
-typedef struct sselector_struct {
+typedef struct selectel_struct {
     operator op;
     int32_t *element;
     int elementlen;
     int32_t **classes;
     int numclasses, classes_size;
     /*### attributes, pseudo */
-} sselector;
+} selectel;
 
 typedef struct selector_struct {
-    sselector **sselectors;
-    int numsselectors, sselectors_size;
+    selectel **selectels;
+    int numselectels, selectels_size;
 } selector;
 
 typedef struct pvalue_struct {
@@ -64,9 +64,9 @@ static int rulegroup_add_declaration(rulegroup *rgrp, declaration *decl);
 static selector *selector_new(void);
 static void selector_delete(selector *sel);
 static void selector_dump(selector *sel, int depth);
-static sselector *sselector_new(void);
-static void sselector_delete(sselector *ssel);
-static void sselector_dump(sselector *ssel, int depth);
+static selectel *selectel_new(void);
+static void selectel_delete(selectel *ssel);
+static void selectel_dump(selectel *ssel, int depth);
 static declaration *declaration_new(void);
 static void declaration_delete(declaration *decl);
 static void declaration_dump(declaration *decl, int depth);
@@ -777,26 +777,26 @@ static selector *selector_new()
     if (!sel)
         return NULL;
 
-    sel->sselectors = NULL;
-    sel->numsselectors = 0;
-    sel->sselectors_size = 0;
+    sel->selectels = NULL;
+    sel->numselectels = 0;
+    sel->selectels_size = 0;
 
     return sel;
 }
 
 static void selector_delete(selector *sel)
 {
-    if (sel->sselectors) {
+    if (sel->selectels) {
         int ix;
 
-        for (ix=0; ix<sel->numsselectors; ix++) 
-            sselector_delete(sel->sselectors[ix]);
+        for (ix=0; ix<sel->numselectels; ix++) 
+            selectel_delete(sel->selectels[ix]);
 
-        free(sel->sselectors);
-        sel->sselectors = NULL;
+        free(sel->selectels);
+        sel->selectels = NULL;
     }
-    sel->numsselectors = 0;
-    sel->sselectors_size = 0;
+    sel->numselectels = 0;
+    sel->selectels_size = 0;
 
     free(sel);
 }
@@ -806,10 +806,10 @@ static void selector_dump(selector *sel, int depth)
     dump_indent(depth);
     printf("### selector\n");
 
-    if (sel->sselectors) {
+    if (sel->selectels) {
         int ix;
-        for (ix=0; ix<sel->numsselectors; ix++) 
-            sselector_dump(sel->sselectors[ix], depth+1);
+        for (ix=0; ix<sel->numselectels; ix++) 
+            selectel_dump(sel->selectels[ix], depth+1);
     }
 }
 
