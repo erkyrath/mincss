@@ -77,7 +77,7 @@ static void pvalue_dump(pvalue *pval, int depth);
 static void construct_atrule(mincss_context *context, node *nod);
 static void construct_rulesets(mincss_context *context, node *nod, stylesheet *sheet);
 static void construct_selectors(mincss_context *context, node *nod, int start, int end, rulegroup *rgrp);
-static int construct_selector(mincss_context *context, node *nod, int start, int end);
+static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
 static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
@@ -219,7 +219,8 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
         }
 
         if (ix > pos) {
-            int finalpos = construct_selector(context, nod, pos, ix);
+            int finalpos = pos;
+            construct_selector(context, nod, pos, ix, &finalpos);
             if (finalpos < ix)
                 node_note_error(context, nod->nodes[finalpos], "Unrecognized text in selector");
         }
@@ -230,11 +231,12 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
     }
 }
 
-static int construct_selector(mincss_context *context, node *nod, int start, int end)
+static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref)
 {
     mincss_dump_node_range("selector", nod, start, end); /*###*/
 
     int pos = start;
+    *posref = pos;
     /* Start by parsing a simple selector. This is a chain of elements,
        classes, etc with no top-level whitespace. */
 
@@ -306,7 +308,7 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
                     }
                     int newpos = pos;
                     if (pos < end) {
-                        newpos = construct_selector(context, nod, pos, end);
+                        construct_selector(context, nod, pos, end, &newpos);
                     }
                     if (newpos == pos)
                         node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
@@ -330,7 +332,7 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
                 }
                 int newpos = pos;
                 if (pos < end) {
-                    newpos = construct_selector(context, nod, pos, end);
+                    construct_selector(context, nod, pos, end, &newpos);
                 }
                 if (combinator && newpos == pos)
                     node_note_error(context, nod->nodes[start], "Combinator not followed by selector");
@@ -339,7 +341,7 @@ static int construct_selector(mincss_context *context, node *nod, int start, int
         }
     }
 
-    return pos;
+    *posref = pos;
 }
 
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp)
