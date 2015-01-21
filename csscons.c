@@ -296,7 +296,7 @@ static void construct_selector(mincss_context *context, node *nod, int start, in
         else if (nod->nodes[pos]->typ == nod_Token && nod->nodes[pos]->toktype == tok_Delim && node_text_matches(nod->nodes[pos], ".")
                  && pos+1 < end && nod->nodes[pos+1]->typ == nod_Token && nod->nodes[pos+1]->toktype == tok_Ident) {
             if (ssel) {
-                ustring *ustr = ustring_new_from_node(nod->nodes[pos]);
+                ustring *ustr = ustring_new_from_node(nod->nodes[pos+1]);
                 if (ustr) {
                     if (!selectel_add_class(ssel, ustr))
                         ustring_delete(ustr);
@@ -858,7 +858,7 @@ static void selector_delete(selector *sel)
 static void selector_dump(selector *sel, int depth)
 {
     dump_indent(depth);
-    printf("### selector\n");
+    printf("Selector\n");
 
     if (sel->selectels) {
         int ix;
@@ -929,7 +929,29 @@ static void selectel_delete(selectel *ssel)
 static void selectel_dump(selectel *ssel, int depth)
 {
     dump_indent(depth);
-    printf("### selectel\n");
+    
+    if (ssel->op) {
+        printf("(%c) ", ssel->op);
+    }
+    printf("Selectel\n");
+
+    if (ssel->element) {
+        dump_indent(depth+1);
+        printf("Element: ");
+        dump_text(ssel->element, ssel->elementlen);
+        printf("\n");
+    }
+
+    if (ssel->classes) {
+        int ix;
+        for (ix=0; ix<ssel->numclasses; ix++) {
+            dump_indent(depth+1);
+            printf("Class: ");
+            dump_text(ssel->classes[ix]->text, ssel->classes[ix]->len);
+            printf("\n");
+        }
+    }
+    
 }
 
 static int selectel_add_class(selectel *ssel, ustring *ustr)
