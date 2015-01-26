@@ -88,7 +88,7 @@ static int declaration_add_pvalue(declaration *decl, pvalue *pval);
 static pvalue *pvalue_new(void);
 static pvalue *pvalue_new_from_token(node *nod);
 static void pvalue_delete(pvalue *pval);
-static void pvalue_dump(pvalue *pval, int depth);
+static void pvalue_dump(pvalue *pval, int depth, int index);
 static ustring *ustring_new(void);
 static ustring *ustring_new_from_node(node *nod);
 static void ustring_delete(ustring *ustr);
@@ -572,6 +572,8 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 continue;
             }
         }
+
+        /* ### Must sanity-check valsep when adding a pvalue! */
 
         if (valnod->typ == nod_Function) {
             if (unaryop) {
@@ -1099,7 +1101,7 @@ static void declaration_dump(declaration *decl, int depth)
     if (decl->pvalues) {
         int ix;
         for (ix=0; ix<decl->numpvalues; ix++) 
-            pvalue_dump(decl->pvalues[ix], depth+1);
+            pvalue_dump(decl->pvalues[ix], depth+1, ix);
     }
 }
 
@@ -1185,15 +1187,26 @@ static void pvalue_delete(pvalue *pval)
     free(pval);
 }
 
-static void pvalue_dump(pvalue *pval, int depth)
+static void pvalue_dump(pvalue *pval, int depth, int index)
 {
     dump_indent(depth);
-    printf("### pvalue\n");
+
+    if (index || pval->op) {
+        printf("(%c) ", (pval->op ? pval->op : ' '));
+    }
+    printf("Pvalue: ");
+    if (pval->negative)
+        printf("(-) ");
+    /*### token type! */
+    dump_text(pval->tok.text, pval->tok.len);
+    if (pval->tok.div)
+        printf(" (%d)", pval->tok.div);
+    printf("\n");
 
     if (pval->pvalues) {
         int ix;
         for (ix=0; ix<pval->numpvalues; ix++) 
-            pvalue_dump(pval->pvalues[ix], depth+1);
+            pvalue_dump(pval->pvalues[ix], depth+1, ix);
     }
 }
 
