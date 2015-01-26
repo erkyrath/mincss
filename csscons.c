@@ -1070,10 +1070,10 @@ static void declaration_delete(declaration *decl)
 static void declaration_dump(declaration *decl, int depth)
 {
     dump_indent(depth);
-    printf("### declaration: ");
+    printf("Declaration: ");
     dump_text(decl->property, decl->propertylen);
     if (decl->important)
-        printf(" !IMPORTANT");
+        printf(" (!IMPORTANT)");
     printf("\n");
 
     if (decl->pvalues) {
