@@ -84,6 +84,7 @@ static int selectel_add_hash(selectel *ssel, ustring *ustr);
 static declaration *declaration_new(void);
 static void declaration_delete(declaration *decl);
 static void declaration_dump(declaration *decl, int depth);
+static int declaration_add_pvalue(declaration *decl, pvalue *pval);
 static pvalue *pvalue_new(void);
 static pvalue *pvalue_new_from_token(node *nod);
 static void pvalue_delete(pvalue *pval);
@@ -578,12 +579,12 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 return; /*###*/
             }
             pvalue *pval = pvalue_new_from_token(valnod);
-            if (pval) {
+            if (decl && pval) {
                 pval->op = valsep;
                 if (!declaration_add_pvalue(decl, pval))
                     pvalue_delete(pval);
             }
-            /* ### This function currently has no way to pass in pval and add the function arguments to it. */
+            /* ### This function currently has no way to pass in pval and add the function arguments to it. In fact currently it leaks all the argument pvalues, due to the "if (decl && pval)" tests that occur all over. */
             construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL);
             terms += 1;
             unaryop = 0;
@@ -594,7 +595,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         if (valnod->typ == nod_Token) {
             if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
                 pvalue *pval = pvalue_new_from_token(valnod);
-                if (pval) {
+                if (decl && pval) {
                     pval->op = valsep;
                     if (unaryop == '-')
                         pval->negative = 1;
@@ -613,7 +614,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                     return; /*###*/
                 }
                 pvalue *pval = pvalue_new_from_token(valnod);
-                if (pval) {
+                if (decl && pval) {
                     pval->op = valsep;
                     if (!declaration_add_pvalue(decl, pval))
                         pvalue_delete(pval);
@@ -1100,6 +1101,26 @@ static void declaration_dump(declaration *decl, int depth)
         for (ix=0; ix<decl->numpvalues; ix++) 
             pvalue_dump(decl->pvalues[ix], depth+1);
     }
+}
+
+static int declaration_add_pvalue(declaration *decl, pvalue *pval)
+{
+    if (!decl->pvalues) {
+        decl->pvalues_size = 4;
+        decl->pvalues = (pvalue **)malloc(decl->pvalues_size * sizeof(pvalue *));
+    }
+    else if (decl->numpvalues >= decl->pvalues_size) {
+        decl->pvalues_size *= 2;
+        decl->pvalues = (pvalue **)realloc(decl->pvalues, decl->pvalues_size * sizeof(pvalue *));
+    }
+    if (!decl->pvalues) {
+        decl->numpvalues = 0;
+        decl->pvalues_size = 0;
+        return 0;
+    }
+
+    decl->pvalues[decl->numpvalues++] = pval;
+    return 1;
 }
 
 static pvalue *pvalue_new()
