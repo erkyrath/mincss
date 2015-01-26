@@ -21,7 +21,7 @@ typedef struct ustring_struct {
 } ustring;
 
 typedef struct selectel_struct {
-    operator op;
+    operator op; /* op_Plus (sibling element), op_GT (child element), or op_None (descendent element) */
     int32_t *element;
     int elementlen;
     ustring **classes;
@@ -37,7 +37,7 @@ typedef struct selector_struct {
 } selector;
 
 typedef struct pvalue_struct {
-    operator op;
+    operator op; /* op_Slash for the funny "font" case */
     int negative;
     token tok;
     struct pvalue_struct **pvalues; /* function arguments */
