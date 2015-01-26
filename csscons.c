@@ -583,7 +583,8 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 if (!declaration_add_pvalue(decl, pval))
                     pvalue_delete(pval);
             }
-            construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL); /*### pass function-pval in */
+            /* ### This function currently has no way to pass in pval and add the function arguments to it. */
+            construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL);
             terms += 1;
             unaryop = 0;
             valsep = 0;
