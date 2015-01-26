@@ -75,7 +75,7 @@ static void selector_dump(selector *sel, int depth);
 static int selector_add_selectel(selector *sel, selectel *ssel);
 static selectel *selectel_new(void);
 static void selectel_delete(selectel *ssel);
-static void selectel_dump(selectel *ssel, int depth);
+static void selectel_dump(selectel *ssel, int depth, int index);
 static int selectel_add_class(selectel *ssel, ustring *ustr);
 static int selectel_add_hash(selectel *ssel, ustring *ustr);
 static declaration *declaration_new(void);
@@ -703,7 +703,7 @@ static void stylesheet_delete(stylesheet *sheet)
 
 void mincss_stylesheet_dump(stylesheet *sheet)
 {
-    printf("Stylesheet:\n");
+    printf("Stylesheet\n");
 
     if (sheet->rulegroups) {
         int ix;
@@ -780,7 +780,7 @@ static void rulegroup_delete(rulegroup *rgrp)
 static void rulegroup_dump(rulegroup *rgrp, int depth)
 {
     dump_indent(depth);
-    printf("### rulegroup (%d selectors, %d declarations)\n", rgrp->numselectors, rgrp->numdeclarations);
+    printf("Rulegroup\n");
 
     if (rgrp->selectors) {
         int ix;
@@ -872,7 +872,7 @@ static void selector_dump(selector *sel, int depth)
     if (sel->selectels) {
         int ix;
         for (ix=0; ix<sel->numselectels; ix++) 
-            selectel_dump(sel->selectels[ix], depth+1);
+            selectel_dump(sel->selectels[ix], depth+1, ix);
     }
 }
 
@@ -950,12 +950,12 @@ static void selectel_delete(selectel *ssel)
     free(ssel);
 }
 
-static void selectel_dump(selectel *ssel, int depth)
+static void selectel_dump(selectel *ssel, int depth, int index)
 {
     dump_indent(depth);
     
-    if (ssel->op) {
-        printf("(%c) ", ssel->op);
+    if (index || ssel->op) {
+        printf("(%c) ", (ssel->op ? ssel->op : ' '));
     }
     printf("Selectel\n");
 
