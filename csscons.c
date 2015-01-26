@@ -39,6 +39,8 @@ typedef struct selector_struct {
 typedef struct pvalue_struct {
     operator op;
     token tok;
+    struct pvalue_struct **pvalues; /* function arguments */
+    int numpvalues, pvalues_size;
 } pvalue;
 
 typedef struct declaration_struct {
@@ -1094,6 +1096,10 @@ static pvalue *pvalue_new()
     memset(&pval->tok, 0, sizeof(pval->tok));
     pval->tok.text = NULL;
 
+    pval->pvalues = NULL;
+    pval->numpvalues = 0;
+    pval->pvalues_size = 0;
+
     return pval;
 }
 
@@ -1106,6 +1112,18 @@ static void pvalue_delete(pvalue *pval)
     pval->tok.len = 0;
     pval->tok.typ = tok_EOF;
 
+    if (pval->pvalues) {
+        int ix;
+
+        for (ix=0; ix<pval->numpvalues; ix++) 
+            pvalue_delete(pval->pvalues[ix]);
+
+        free(pval->pvalues);
+        pval->pvalues = NULL;
+    }
+    pval->numpvalues = 0;
+    pval->pvalues_size = 0;
+
     free(pval);
 }
 
@@ -1113,6 +1131,12 @@ static void pvalue_dump(pvalue *pval, int depth)
 {
     dump_indent(depth);
     printf("### pvalue\n");
+
+    if (pval->pvalues) {
+        int ix;
+        for (ix=0; ix<pval->numpvalues; ix++) 
+            pvalue_dump(pval->pvalues[ix], depth+1);
+    }
 }
 
 static ustring *ustring_new(void)
