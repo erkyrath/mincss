@@ -38,6 +38,7 @@ typedef struct selector_struct {
 
 typedef struct pvalue_struct {
     operator op;
+    int negative;
     token tok;
     struct pvalue_struct **pvalues; /* function arguments */
     int numpvalues, pvalues_size;
@@ -84,6 +85,7 @@ static declaration *declaration_new(void);
 static void declaration_delete(declaration *decl);
 static void declaration_dump(declaration *decl, int depth);
 static pvalue *pvalue_new(void);
+static pvalue *pvalue_new_from_token(node *nod);
 static void pvalue_delete(pvalue *pval);
 static void pvalue_dump(pvalue *pval, int depth);
 static ustring *ustring_new(void);
@@ -96,7 +98,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
-static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel);
+static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl);
 static int32_t *copy_text(node *nod, int32_t *lenref);
 
 /* Test whether the text of a node matches the given ASCII string.
@@ -524,11 +526,11 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
         }
     }
 
-    construct_expr(context, nod, valstart, valend, 1);
+    construct_expr(context, nod, valstart, valend, 1, decl);
     return decl;
 }
 
-static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel)
+static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl)
 {
     int ix;
 
@@ -575,9 +577,13 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 node_note_error(context, valnod, "Function cannot have +/-");
                 return; /*###*/
             }
-            construct_expr(context, valnod, 0, valnod->numnodes, 0); /*### store */
-            printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
-            mincss_dump_node(valnod, 0);
+            pvalue *pval = pvalue_new_from_token(valnod);
+            if (pval) {
+                pval->op = valsep;
+                if (!declaration_add_pvalue(decl, pval))
+                    pvalue_delete(pval);
+            }
+            construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL); /*### pass function-pval in */
             terms += 1;
             unaryop = 0;
             valsep = 0;
@@ -586,8 +592,14 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
 
         if (valnod->typ == nod_Token) {
             if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
-                printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
-                mincss_dump_node(valnod, 0);
+                pvalue *pval = pvalue_new_from_token(valnod);
+                if (pval) {
+                    pval->op = valsep;
+                    if (unaryop == '-')
+                        pval->negative = 1;
+                    if (!declaration_add_pvalue(decl, pval))
+                        pvalue_delete(pval);
+                }
                 terms += 1;
                 unaryop = 0;
                 valsep = 0;
@@ -599,8 +611,12 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                     node_note_error(context, valnod, "Declaration value cannot have +/-");
                     return; /*###*/
                 }
-                printf("### %c %c: ", (valsep?valsep:' '), (unaryop?unaryop:' '));
-                mincss_dump_node(valnod, 0);
+                pvalue *pval = pvalue_new_from_token(valnod);
+                if (pval) {
+                    pval->op = valsep;
+                    if (!declaration_add_pvalue(decl, pval))
+                        pvalue_delete(pval);
+                }
                 terms += 1;
                 unaryop = 0;
                 valsep = 0;
@@ -1092,6 +1108,7 @@ static pvalue *pvalue_new()
         return NULL;
 
     pval->op = op_None;
+    pval->negative = 0;
 
     memset(&pval->tok, 0, sizeof(pval->tok));
     pval->tok.text = NULL;
@@ -1099,6 +1116,25 @@ static pvalue *pvalue_new()
     pval->pvalues = NULL;
     pval->numpvalues = 0;
     pval->pvalues_size = 0;
+
+    return pval;
+}
+
+static pvalue *pvalue_new_from_token(node *nod)
+{
+    pvalue *pval = pvalue_new();
+    if (!pval)
+        return NULL;
+
+    pval->tok.typ = nod->toktype;
+    pval->tok.div = nod->textdiv;
+    if (nod->text) {
+        pval->tok.text = copy_text(nod, &pval->tok.len);
+        if (!pval->tok.text) {
+            pvalue_delete(pval);
+            return NULL;
+        }
+    }
 
     return pval;
 }
