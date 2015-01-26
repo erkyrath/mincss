@@ -203,7 +203,7 @@ static void construct_rulesets(mincss_context *context, node *nod, stylesheet *s
         node *blocknod = nod->nodes[blockpos];
         construct_declarations(context, blocknod, rgrp);
 
-        if (0 /*###!rgrp->numselectors || !rgrp->numdeclarations###*/) { /*### temporarily suppress this check */
+        if (!rgrp->numselectors || !rgrp->numdeclarations) {
             /* Empty, skip. */
             rulegroup_delete(rgrp);
         }
