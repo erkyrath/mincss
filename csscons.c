@@ -224,6 +224,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
     int pos = start;
 
     /* Split the range by commas; each is a selector. */
+    /* ### Fails to report a trailing comma. */
     while (pos < end) {
         if (node_is_space(nod->nodes[pos])) {
             /* skip initial whitespace */

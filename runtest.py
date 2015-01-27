@@ -783,6 +783,39 @@ Stylesheet
    ( ) Pvalue: Function "func"
 '''),
     
+    ('bar { x: 1 2/3x#000"foo" \\61-}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: bar
+  Declaration: x
+   Pvalue: Number "1"
+   ( ) Pvalue: Number "2"
+   (/) Pvalue: Dimension "3x" (1)
+   ( ) Pvalue: Hash "000"
+   ( ) Pvalue: String "foo"
+   ( ) Pvalue: Ident "a-"
+'''),
+    
+    ('@foo {x:1} bar {y:2} @baz {z:3} quux {} quux2 {q:4}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: bar
+  Declaration: y
+   Pvalue: Number "2"
+ Rulegroup
+  Selector
+   Selectel
+    Element: quux2
+  Declaration: q
+   Pvalue: Number "4"
+'''),
+    
     ]
 
 popt = optparse.OptionParser()
