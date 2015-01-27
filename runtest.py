@@ -866,6 +866,205 @@ Stylesheet
 ''', [ "@import rule ignored",
        "@page rule ignored" ]),
     
+    (',foo {x:1} bar {y:2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+ Rulegroup
+  Selector
+   Selectel
+    Element: bar
+  Declaration: y
+   Pvalue: Number "2"
+''', [ "Block has empty selector" ]),
+    
+    ('foo, {x:1} bar {y:2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+ Rulegroup
+  Selector
+   Selectel
+    Element: bar
+  Declaration: y
+   Pvalue: Number "2"
+''', [ "### trailing comma" ]),
+    
+    ('foo,,baz {x:1} bar {y:2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Selector
+   Selectel
+    Element: baz
+  Declaration: x
+   Pvalue: Number "1"
+ Rulegroup
+  Selector
+   Selectel
+    Element: bar
+  Declaration: y
+   Pvalue: Number "2"
+''', [ "Block has empty selector" ]),
+    
+    ('foo {;x:1}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+''', [ "### leading semicolon" ]),
+    
+    ('foo {x:1;}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+'''),
+    
+    ('foo {x:1;;y:2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+  Declaration: y
+   Pvalue: Number "2"
+'''),
+    
+    ('foo {x:1,2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+   (,) Pvalue: Number "2"
+''', [ "Comma between property values" ]),
+    
+    ('foo {x:,1 2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   (,) Pvalue: Number "1"
+   ( ) Pvalue: Number "2"
+''', [ "Comma between property values" ]),
+    
+    ('foo {x:/1 2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   (/) Pvalue: Number "1"
+   ( ) Pvalue: Number "2"
+''', [ "Extra slash before property values" ]),
+    
+    ('foo {x:1/2/}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+   (/) Pvalue: Number "2"
+''', [ "Unexpected trailing separator" ]),
+    
+    ('foo {x:f(1 2)}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+    Pvalue: Number "1"
+    ( ) Pvalue: Number "2"
+''', [ "No comma between function arguments" ]),
+    
+    ('foo {x:f(1/2)}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+    Pvalue: Number "1"
+    (/) Pvalue: Number "2"
+''', [ "Slash between function arguments" ]),
+    
+    ('foo {x:f(,1,2)}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+    (,) Pvalue: Number "1"
+    (,) Pvalue: Number "2"
+''', [ "Extra comma before function arguments" ]),
+    
+    ('foo {x:f(1,2,)}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+    Pvalue: Number "1"
+    (,) Pvalue: Number "2"
+''', [ "Unexpected trailing separator" ]),
+    
+    ('###',
+     '''
+Stylesheet
+''', [ ]),
+    
+    ('###',
+     '''
+Stylesheet
+''', [ ]),
+    
     ('###',
      '''
 Stylesheet
