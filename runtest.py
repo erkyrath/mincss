@@ -1026,6 +1026,13 @@ Stylesheet
     ('foo {x:1/2/}',
      '''
 Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+   (/) Pvalue: Number "2"
 ''', [ "Unexpected trailing separator" ]),
     
     ('foo {x:1//2}  bar{y:3}',
@@ -1081,6 +1088,14 @@ Stylesheet
     ('foo {x:f(1,2,)}',
      '''
 Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+    Pvalue: Number "1"
+    (,) Pvalue: Number "2"
 ''', [ "Unexpected trailing separator" ]),
     
     ('foo {x:f(1,,2)}',

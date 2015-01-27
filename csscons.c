@@ -689,11 +689,11 @@ static int construct_expr(mincss_context *context, node *nod, int start, int end
 
     if (valsep) {
         node_note_error(context, nod, "Unexpected trailing separator");
-        return 0;
+        return 1; /* eh, keep it */
     }
     if (unaryop) {
         node_note_error(context, nod, "Unexpected trailing +/-");
-        return 0;
+        return 1; /* eh, keep it */
     }
     if (toplevel && !terms) {
         node_note_error(context, nod, "Missing declaration value");
