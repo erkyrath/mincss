@@ -605,7 +605,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 continue;
             }
 
-            if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_URI) {
+            if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_Hash || valnod->toktype == tok_URI) {
                 if (unaryop) {
                     node_note_error(context, valnod, "Declaration value cannot have +/-");
                     return; /*###*/
