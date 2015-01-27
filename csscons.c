@@ -250,7 +250,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 
             if (!sel->numselectels) {
                 selector_delete(sel);
-                return;
+                continue;
             }
             if (!rulegroup_add_selector(rgrp, sel))
                 selector_delete(sel);
