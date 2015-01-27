@@ -582,9 +582,12 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
 
     /* Parse out a list of values. These are normally separated only 
        by whitespace, but a slash is possible (see the CSS spec re the
-       "font" shorthand property). We don't try to work out the value
-       type or check type validity here. We do verify the expression
-       syntax, though. */
+       "font" shorthand property). Or we might be inside a function
+       argument list, in which case we expect commas.
+
+       We don't try to work out the value type or check type validity
+       here. We do verify the expression syntax, though. */
+
     int valsep = 0;
     int unaryop = 0;
     int terms = 0;
