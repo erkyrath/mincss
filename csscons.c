@@ -264,8 +264,6 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 
 static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel)
 {
-    mincss_dump_node_range("selector", nod, start, end); /*###*/
-
     int pos = start;
     *posref = pos;
     /* Start by parsing a simple selector. This is a chain of elements,
@@ -458,9 +456,6 @@ static void construct_declarations(mincss_context *context, node *nod, rulegroup
 
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend)
 {
-    mincss_dump_node_range(" prop", nod, propstart, propend); /*###*/
-    mincss_dump_node_range("  val", nod, valstart, valend); /*###*/
-
     int ix;
 
     if (propend <= propstart) {
@@ -1197,8 +1192,9 @@ static void pvalue_dump(pvalue *pval, int depth, int index)
     printf("Pvalue: ");
     if (pval->negative)
         printf("(-) ");
-    /*### token type! */
+    printf("%s \"", mincss_token_name(pval->tok.typ));
     dump_text(pval->tok.text, pval->tok.len);
+    printf("\"");
     if (pval->tok.div)
         printf(" (%d)", pval->tok.div);
     printf("\n");
