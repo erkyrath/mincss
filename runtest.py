@@ -832,6 +832,18 @@ Stylesheet
     (,) Pvalue: Hash "333"
 '''),
     
+    (u'\u0398\\39Bx { x\u0398\\39B:"\u0393\\394" -\u0394\\393 }',
+     u'\
+Stylesheet\n\
+ Rulegroup\n\
+  Selector\n\
+   Selectel\n\
+    Element: \u0398\u039Bx\n\
+  Declaration: x\u0398\u039B\n\
+   Pvalue: String "\u0393\u0394"\n\
+   ( ) Pvalue: Ident "-\u0394\u0393"\n\
+'),
+    
     ]
 
 popt = optparse.OptionParser()
