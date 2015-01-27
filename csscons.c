@@ -100,7 +100,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
-static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl, pvalue *parentval);
+static int construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl, pvalue *parentval);
 static int32_t *copy_text(node *nod, int32_t *lenref);
 
 /* Test whether the text of a node matches the given ASCII string.
@@ -524,7 +524,11 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
         }
     }
 
-    construct_expr(context, nod, valstart, valend, 1, decl, NULL);
+    if (!construct_expr(context, nod, valstart, valend, 1, decl, NULL)) {
+        declaration_delete(decl);
+        return NULL;
+    }
+
     return decl;
 }
 
@@ -576,7 +580,7 @@ static int add_pvalue_or_fail(mincss_context *context, node *nod, declaration *d
 }
 
 
-static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl, pvalue *parentval)
+static int construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl, pvalue *parentval)
 {
     int ix;
 
@@ -596,7 +600,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         if (node_is_space(valnod)) {
             if (unaryop) {
                 node_note_error(context, nod, "Unexpected +/- with no value");
-                return;
+                return 0;
             }
             continue;
         }
@@ -624,7 +628,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         if (valnod->typ == nod_Function) {
             if (unaryop) {
                 node_note_error(context, valnod, "Function cannot have +/-");
-                return; /*###*/
+                return 0;
             }
             pvalue *pval = pvalue_new_from_token(valnod);
             if (pval) {
@@ -633,7 +637,10 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                 if (!add_pvalue_or_fail(context, nod, decl, parentval, pval, toplevel))
                     pvalue_delete(pval);
             }
-            construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL, pval);
+            if (!construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL, pval)) {
+                pvalue_delete(pval);
+                return 0;
+            }
             terms += 1;
             unaryop = 0;
             valsep = 0;
@@ -659,7 +666,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
             if (valnod->toktype == tok_String || valnod->toktype == tok_Ident || valnod->toktype == tok_Hash || valnod->toktype == tok_URI) {
                 if (unaryop) {
                     node_note_error(context, valnod, "Declaration value cannot have +/-");
-                    return; /*###*/
+                    return 0;
                 }
                 pvalue *pval = pvalue_new_from_token(valnod);
                 if (pval) {
@@ -675,23 +682,23 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         }
 
         node_note_error(context, valnod, "Invalid declaration value");
-        return; /*###*/
+        return 0;
     }
 
     if (valsep) {
         node_note_error(context, nod, "Unexpected trailing separator");
-        return; /*###*/
+        return 0;
     }
     if (unaryop) {
         node_note_error(context, nod, "Unexpected trailing +/-");
-        return; /*###*/
+        return 0;
     }
     if (toplevel && !terms) {
         node_note_error(context, nod, "Missing declaration value");
-        return; /*###*/
+        return 0;
     }
 
-    /* ### all ok */
+    return 1;
 }
 
 static int32_t *copy_text(node *nod, int32_t *lenref)
