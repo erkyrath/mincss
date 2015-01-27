@@ -832,6 +832,38 @@ Stylesheet
     (,) Pvalue: Hash "333"
 '''),
     
+    ('foo { x:f(1, g(h()), 2) 3; }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+    Pvalue: Number "1"
+    (,) Pvalue: Function "g"
+     Pvalue: Function "h"
+    (,) Pvalue: Number "2"
+   ( ) Pvalue: Number "3"
+'''),
+    
+    ('foo {x:-1 +2 -3% +4% -5pt +67em;}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: (-) Number "1"
+   ( ) Pvalue: Number "2"
+   ( ) Pvalue: (-) Percentage "3"
+   ( ) Pvalue: Percentage "4"
+   ( ) Pvalue: (-) Dimension "5pt" (1)
+   ( ) Pvalue: Dimension "67em" (2)
+'''),
+    
     (u'\u0398\\39Bx { x\u0398\\39B:"\u0393\\394" -\u0394\\393 }',
      u'\
 Stylesheet\n\
@@ -994,24 +1026,11 @@ Stylesheet
     ('foo {x:1/2/}',
      '''
 Stylesheet
- Rulegroup
-  Selector
-   Selectel
-    Element: foo
-  Declaration: x
-   Pvalue: Number "1"
-   (/) Pvalue: Number "2"
 ''', [ "Unexpected trailing separator" ]),
     
     ('foo {x:1//2}  bar{y:3}',
      '''
 Stylesheet
- Rulegroup
-  Selector
-   Selectel
-    Element: foo
-  Declaration: x
-   Pvalue: Number "1"
  Rulegroup
   Selector
    Selectel
@@ -1062,26 +1081,11 @@ Stylesheet
     ('foo {x:f(1,2,)}',
      '''
 Stylesheet
- Rulegroup
-  Selector
-   Selectel
-    Element: foo
-  Declaration: x
-   Pvalue: Function "f"
-    Pvalue: Number "1"
-    (,) Pvalue: Number "2"
 ''', [ "Unexpected trailing separator" ]),
     
     ('foo {x:f(1,,2)}',
      '''
 Stylesheet
- Rulegroup
-  Selector
-   Selectel
-    Element: foo
-  Declaration: x
-   Pvalue: Function "f"
-    Pvalue: Number "1"
 ''', [ "Invalid declaration value" ]),
     
     ('foo {x:1; y:2',
@@ -1097,10 +1101,15 @@ Stylesheet
    Pvalue: Number "2"
 ''', [ "Unexpected end of block" ]),
     
-    ('###',
+    ('foo {x:-1 +2 -3% +4% -5pt +67em -"x" 0;}',
      '''
 Stylesheet
-''', [ ]),
+''', [ "Declaration value cannot have +/-" ]),
+    
+    ('foo {x:-#123}',
+     '''
+Stylesheet
+''', [ "Declaration value cannot have +/-" ]),
     
     ('###',
      '''

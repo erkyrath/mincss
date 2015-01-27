@@ -631,14 +631,16 @@ static int construct_expr(mincss_context *context, node *nod, int start, int end
                 return 0;
             }
             pvalue *pval = pvalue_new_from_token(valnod);
-            if (pval) {
-                pval->tok.typ = tok_Function; /* the node isn't actually of tok_Function type */
-                pval->op = valsep;
-                if (!add_pvalue_or_fail(context, nod, decl, parentval, pval, toplevel))
-                    pvalue_delete(pval);
+            if (!pval)
+                return 0;
+            pval->tok.typ = tok_Function; /* the node isn't actually of tok_Function type */
+            pval->op = valsep;
+            if (!add_pvalue_or_fail(context, nod, decl, parentval, pval, toplevel)) {
+                pvalue_delete(pval);
+                return 0;
             }
             if (!construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL, pval)) {
-                pvalue_delete(pval);
+                /* Don't delete pval, it's already been added */
                 return 0;
             }
             terms += 1;
