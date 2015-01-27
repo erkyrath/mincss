@@ -723,6 +723,66 @@ Stylesheet
    Pvalue: Number "33"
 '''),
     
+    ('foo bar { x:1 } baz {y:2}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+   ( ) Selectel
+    Element: bar
+  Declaration: x
+   Pvalue: Number "1"
+ Rulegroup
+  Selector
+   Selectel
+    Element: baz
+  Declaration: y
+   Pvalue: Number "2"
+'''),
+    
+    ('x+y>z + q > w , r { x:1 }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: x
+   (+) Selectel
+    Element: y
+   (>) Selectel
+    Element: z
+   (+) Selectel
+    Element: q
+   (>) Selectel
+    Element: w
+  Selector
+   Selectel
+    Element: r
+  Declaration: x
+   Pvalue: Number "1"
+'''),
+    
+    ('ZZ { x: 1 "two" \'TWO\' 3pt four 5% #01234F url(http:x) func() }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: ZZ
+  Declaration: x
+   Pvalue: Number "1"
+   ( ) Pvalue: String "two"
+   ( ) Pvalue: String "TWO"
+   ( ) Pvalue: Dimension "3pt" (1)
+   ( ) Pvalue: Ident "four"
+   ( ) Pvalue: Percentage "5"
+   ( ) Pvalue: Hash "01234F"
+   ( ) Pvalue: URI "http:x"
+   ( ) Pvalue: Function "func"
+'''),
+    
     ]
 
 popt = optparse.OptionParser()
