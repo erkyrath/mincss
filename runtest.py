@@ -816,6 +816,22 @@ Stylesheet
    Pvalue: Number "4"
 '''),
     
+    ('foo { x:f() g(1) h( "two", #333 ); }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "f"
+   ( ) Pvalue: Function "g"
+    Pvalue: Number "1"
+   ( ) Pvalue: Function "h"
+    Pvalue: String "two"
+    (,) Pvalue: Hash "333"
+'''),
+    
     ]
 
 popt = optparse.OptionParser()

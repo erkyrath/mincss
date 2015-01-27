@@ -89,6 +89,7 @@ static pvalue *pvalue_new(void);
 static pvalue *pvalue_new_from_token(node *nod);
 static void pvalue_delete(pvalue *pval);
 static void pvalue_dump(pvalue *pval, int depth, int index);
+static int pvalue_add_pvalue(pvalue *pval, pvalue *pval2);
 static ustring *ustring_new(void);
 static ustring *ustring_new_from_node(node *nod);
 static void ustring_delete(ustring *ustr);
@@ -99,7 +100,7 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel);
 static void construct_declarations(mincss_context *context, node *nod, rulegroup *rgrp);
 static declaration *construct_declaration(mincss_context *context, node *nod, int propstart, int propend, int valstart, int valend);
-static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl);
+static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl, pvalue *parentval);
 static int32_t *copy_text(node *nod, int32_t *lenref);
 
 /* Test whether the text of a node matches the given ASCII string.
@@ -523,11 +524,59 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
         }
     }
 
-    construct_expr(context, nod, valstart, valend, 1, decl);
+    construct_expr(context, nod, valstart, valend, 1, decl, NULL);
     return decl;
 }
 
-static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl)
+static int add_pvalue_or_fail(mincss_context *context, node *nod, declaration *decl, pvalue *parentval, pvalue *pval, int toplevel)
+{
+    int first = 0;
+
+    if (toplevel) {
+        if (!decl) {
+            node_note_error(context, nod, "(Internal) add_pvalue_or_fail: toplevel, no decl");
+            return 0;
+        }
+        first = (decl->numpvalues == 0);
+    }
+    else {
+        if (!parentval) {
+            node_note_error(context, nod, "(Internal) add_pvalue_or_fail: !toplevel, no parentval");
+            return 0;
+        }
+        first = (parentval->numpvalues == 0);
+    }
+
+    if (toplevel) {
+        if (pval->op == op_Comma)
+            node_note_error(context, nod, "Comma between property values");
+        if (first && pval->op == op_Slash)
+            node_note_error(context, nod, "Extra slash before property values");
+            
+        if (!declaration_add_pvalue(decl, pval))
+            return 0;
+    }
+    else {
+        if (pval->op == op_Slash)
+            node_note_error(context, nod, "Slash between function arguments");
+        if (first) {
+            if (pval->op == op_Comma)
+                node_note_error(context, nod, "Extra comma before function arguments");
+        }
+        else {
+            if (pval->op == op_None)
+                node_note_error(context, nod, "No comma between function arguments");
+        }
+
+        if (!pvalue_add_pvalue(parentval, pval))
+            return 0;
+    }
+
+    return 1;
+}
+
+
+static void construct_expr(mincss_context *context, node *nod, int start, int end, int toplevel, declaration *decl, pvalue *parentval)
 {
     int ix;
 
@@ -569,22 +618,19 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
             }
         }
 
-        /* ### Must sanity-check valsep when adding a pvalue! */
-
         if (valnod->typ == nod_Function) {
             if (unaryop) {
                 node_note_error(context, valnod, "Function cannot have +/-");
                 return; /*###*/
             }
             pvalue *pval = pvalue_new_from_token(valnod);
-            if (decl && pval) {
+            if (pval) {
                 pval->tok.typ = tok_Function; /* the node isn't actually of tok_Function type */
                 pval->op = valsep;
-                if (!declaration_add_pvalue(decl, pval))
+                if (!add_pvalue_or_fail(context, nod, decl, parentval, pval, toplevel))
                     pvalue_delete(pval);
             }
-            /* ### This function currently has no way to pass in pval and add the function arguments to it. In fact currently it leaks all the argument pvalues, due to the "if (decl && pval)" tests that occur all over. */
-            construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL);
+            construct_expr(context, valnod, 0, valnod->numnodes, 0, NULL, pval);
             terms += 1;
             unaryop = 0;
             valsep = 0;
@@ -594,11 +640,11 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         if (valnod->typ == nod_Token) {
             if (valnod->toktype == tok_Number || valnod->toktype == tok_Percentage || valnod->toktype == tok_Dimension) {
                 pvalue *pval = pvalue_new_from_token(valnod);
-                if (decl && pval) {
+                if (pval) {
                     pval->op = valsep;
                     if (unaryop == '-')
                         pval->negative = 1;
-                    if (!declaration_add_pvalue(decl, pval))
+                    if (!add_pvalue_or_fail(context, nod, decl, parentval, pval, toplevel))
                         pvalue_delete(pval);
                 }
                 terms += 1;
@@ -613,9 +659,9 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
                     return; /*###*/
                 }
                 pvalue *pval = pvalue_new_from_token(valnod);
-                if (decl && pval) {
+                if (pval) {
                     pval->op = valsep;
-                    if (!declaration_add_pvalue(decl, pval))
+                    if (!add_pvalue_or_fail(context, nod, decl, parentval, pval, toplevel))
                         pvalue_delete(pval);
                 }
                 terms += 1;
@@ -1206,6 +1252,26 @@ static void pvalue_dump(pvalue *pval, int depth, int index)
         for (ix=0; ix<pval->numpvalues; ix++) 
             pvalue_dump(pval->pvalues[ix], depth+1, ix);
     }
+}
+
+static int pvalue_add_pvalue(pvalue *pval, pvalue *pval2)
+{
+    if (!pval->pvalues) {
+        pval->pvalues_size = 4;
+        pval->pvalues = (pvalue **)malloc(pval->pvalues_size * sizeof(pvalue *));
+    }
+    else if (pval->numpvalues >= pval->pvalues_size) {
+        pval->pvalues_size *= 2;
+        pval->pvalues = (pvalue **)realloc(pval->pvalues, pval->pvalues_size * sizeof(pvalue *));
+    }
+    if (!pval->pvalues) {
+        pval->numpvalues = 0;
+        pval->pvalues_size = 0;
+        return 0;
+    }
+
+    pval->pvalues[pval->numpvalues++] = pval2;
+    return 1;
 }
 
 static ustring *ustring_new(void)
