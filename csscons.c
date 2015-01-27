@@ -577,6 +577,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
             }
             pvalue *pval = pvalue_new_from_token(valnod);
             if (decl && pval) {
+                pval->tok.typ = tok_Function; /* the node isn't actually of tok_Function type */
                 pval->op = valsep;
                 if (!declaration_add_pvalue(decl, pval))
                     pvalue_delete(pval);
@@ -635,7 +636,7 @@ static void construct_expr(mincss_context *context, node *nod, int start, int en
         node_note_error(context, nod, "Unexpected trailing +/-");
         return; /*###*/
     }
-    if (!terms) {
+    if (toplevel && !terms) {
         node_note_error(context, nod, "Missing declaration value");
         return; /*###*/
     }
