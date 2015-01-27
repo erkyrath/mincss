@@ -223,11 +223,6 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
 {
     int pos = start;
 
-    selector *sel = selector_new();
-    if (!sel) {
-        return; /*### memory*/
-    }
-
     /* Split the range by commas; each is a selector. */
     while (pos < end) {
         if (node_is_space(nod->nodes[pos])) {
@@ -243,23 +238,28 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
         }
 
         if (ix > pos) {
+            selector *sel = selector_new();
+            if (!sel) {
+                return; /*### memory*/
+            }
+
             int finalpos = pos;
             construct_selector(context, nod, pos, ix, &finalpos, op_None, sel);
             if (finalpos < ix)
                 node_note_error(context, nod->nodes[finalpos], "Unrecognized text in selector");
+
+            if (!sel->numselectels) {
+                selector_delete(sel);
+                return;
+            }
+            if (!rulegroup_add_selector(rgrp, sel))
+                selector_delete(sel);
         }
         else {
             node_note_error(context, nod->nodes[start], "Block has empty selector");
         }
         pos = ix+1;
     }
-
-    if (!sel->numselectels) {
-        selector_delete(sel);
-        return;
-    }
-    if (!rulegroup_add_selector(rgrp, sel))
-        selector_delete(sel);
 }
 
 static void construct_selector(mincss_context *context, node *nod, int start, int end, int *posref, operator op, selector *sel)

@@ -702,6 +702,27 @@ Stylesheet
    Pvalue: Number "5"
 '''),
     
+    ('foo,bar , baz{x:1;y:2 ; z : 33 }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Selector
+   Selectel
+    Element: bar
+  Selector
+   Selectel
+    Element: baz
+  Declaration: x
+   Pvalue: Number "1"
+  Declaration: y
+   Pvalue: Number "2"
+  Declaration: z
+   Pvalue: Number "33"
+'''),
+    
     ]
 
 popt = optparse.OptionParser()
