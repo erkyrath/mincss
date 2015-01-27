@@ -94,6 +94,7 @@ def reporterror(msg):
     
 tokenlinepat = re.compile('^<([A-Za-z]*)> *"(.*)"$')
 nodelinepat = re.compile('^[0-9]+:(.*)$')
+sheetlinepat = re.compile('^(.+)$')
 errorlinepat = re.compile('^MinCSS error: (.*) \\(line ([0-9]+)\\)$')
 
 def lextest(input, wanttokens, wanterrors=[]):
@@ -199,6 +200,56 @@ def treetest(input, wantnodes, wanterrors=[]):
     for wanted in wantnodes[len(nodes):]:
         reporterror('failed to get node: "%s"' % (wanted,))
     
+
+def sheettest(input, wantnodes, wanterrors=[]):
+    if type(input) is unicode:
+        input = input.encode('utf-8')
+        
+    popen = subprocess.Popen(['./test', '--sheet'],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = popen.communicate(input)
+
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
+
+    errors = []
+    for ln in stderr.split('\n'):
+        match = errorlinepat.match(ln)
+        if not match:
+            continue
+        errors.append(match.group(1))
+
+    nodes = []
+    for ln in stdout.split('\n'):
+        match = sheetlinepat.match(ln)
+        if not match:
+            continue
+        nodes.append(match.group(1))
+
+    for (ix, error) in enumerate(errors):
+        if ix >= len(wanterrors):
+            reporterror('unexpected error: "%s"' % (error,))
+        else:
+            wanted = wanterrors[ix]
+            if error != wanted:
+                reporterror('error mismatch: wanted "%s", got "%s"' % (wanted, error,))
+    for wanted in wanterrors[len(errors):]:
+        reporterror('failed to get error: %r' % (wanted,))
+
+    wantnodes = wantnodes.split('\n')
+    wantnodes = [ ln.rstrip() for ln in wantnodes ]
+    wantnodes = [ ln for ln in wantnodes if ln ]
+    
+    for (ix, node) in enumerate(nodes):
+        if ix >= len(wantnodes):
+            reporterror('unexpected node: "%s"' % (node,))
+        else:
+            wanted = wantnodes[ix]
+            if wanted != node:
+                reporterror('node mismatch: wanted "%s", got "%s"' % (wanted, node,))
+    for wanted in wantnodes[len(nodes):]:
+        reporterror('failed to get node: "%s"' % (wanted,))
+
 
 lextestlist = [
     (' \f\t\n\r \n',
@@ -634,6 +685,24 @@ Stylesheet
     
     ]
 
+sheettestlist = [
+    ('\n',
+     '''
+Stylesheet
+'''),
+    
+    ('foo { x:5; }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "5"
+'''),
+    
+    ]
 
 popt = optparse.OptionParser()
 
@@ -643,10 +712,13 @@ popt.add_option('-L', '--lexer',
 popt.add_option('-T', '--tree',
                 action='store_true', dest='runtree',
                 help='run the tree tests')
+popt.add_option('-S', '--sheet',
+                action='store_true', dest='runsheet',
+                help='run the sheet tests')
 
 (opts, args) = popt.parse_args()
 
-runalltests = not (opts.runlexer or opts.runtree)
+runalltests = not (opts.runlexer or opts.runtree or opts.runsheet)
 
 if opts.runlexer or runalltests:
     for tup in lextestlist:
@@ -667,6 +739,16 @@ if opts.runtree or runalltests:
         if len(tup) == 3:
             errors = tup[2]
         treetest(input, nodes, errors)
+
+if opts.runsheet or runalltests:
+    for tup in sheettestlist:
+        testcount += 1
+        input = tup[0]
+        nodes = tup[1]
+        errors = []
+        if len(tup) == 3:
+            errors = tup[2]
+        sheettest(input, nodes, errors)
 
 if errorcount:
     print 'FAILED, %d errors (%d tests)' % (errorcount, testcount)
