@@ -844,6 +844,33 @@ Stylesheet\n\
    ( ) Pvalue: Ident "-\u0394\u0393"\n\
 '),
     
+    ('boo',
+     '''
+Stylesheet
+''', [ "Selector missing block" ]),
+    
+    ('{}',
+     '''
+Stylesheet
+''', [ "Block missing selectors" ]),
+    
+    ('@import "whatever"; foo {y:2} @media screen and (max-device-width: 480px) { x:1; } @page :left {z:3}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: y
+   Pvalue: Number "2"
+''', [ "@import rule ignored",
+       "@page rule ignored" ]),
+    
+    ('###',
+     '''
+Stylesheet
+''', [ ]),
+    
     ]
 
 popt = optparse.OptionParser()
