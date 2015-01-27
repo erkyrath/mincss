@@ -864,6 +864,29 @@ Stylesheet
    ( ) Pvalue: Dimension "67em" (2)
 '''),
     
+    ('foo {x:-func(x)}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "-func"
+    Pvalue: Ident "x"
+'''),
+    
+    ('foo {x:-y}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Ident "-y"
+'''),
+    
     (u'\u0398\\39Bx { x\u0398\\39B:"\u0393\\394" -\u0394\\393 }',
      u'\
 Stylesheet\n\
@@ -1125,6 +1148,21 @@ Stylesheet
      '''
 Stylesheet
 ''', [ "Declaration value cannot have +/-" ]),
+    
+    ('foo {x:+url(http:x)}',
+     '''
+Stylesheet
+''', [ "Declaration value cannot have +/-" ]),
+    
+    ('foo {x:+y}',
+     '''
+Stylesheet
+''', [ "Declaration value cannot have +/-" ]),
+    
+    ('foo {x:+func(x)}',
+     '''
+Stylesheet
+''', [ "Function cannot have +/-" ]),
     
     ('###',
      '''
