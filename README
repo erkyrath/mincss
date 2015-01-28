@@ -7,8 +7,9 @@ Pre-release
 This is an experimental CSS parser, written in C. You don't want to
 use it.
 
-It is not functional at this point. It has a lexer, which can turn a CSS
-file into a token stream, but there's no parser per se.
+At this point it is a proof of concept. It can parse a CSS file into
+a memory structure, but all it can do with that structure is print it
+back out (for unit tests).
 
 Yes, there's plenty of CSS parsing code in the world. I need a minimal
 CSS parser with no dependencies as part of an IF-related project. This
@@ -16,7 +17,7 @@ code may wind up being that parser. Or not. I haven't decided yet.
 
 * Permissions
 
-The source code in this package is copyright 2014 by Andrew Plotkin.
+The source code in this package is copyright 2014-5 by Andrew Plotkin.
 You may copy and distribute it freely, by any means and under any conditions,
 as long as the code and documentation is not changed. You may also
 incorporate this code into your own program and distribute that, or modify
