@@ -37,7 +37,7 @@ typedef struct selector_struct {
 } selector;
 
 typedef struct pvalue_struct {
-    operator op; /* op_Slash for the funny "font" case */
+    operator op; /* op_Slash for the funny "font" case, or op_Comma if this is a function argument */
     int negative;
     token tok;
     struct pvalue_struct **pvalues; /* function arguments */
