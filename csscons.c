@@ -701,6 +701,10 @@ static int construct_expr(mincss_context *context, node *nod, int start, int end
         return 1; /* eh, keep it */
     }
     if (unaryop) {
+        if (!terms) {
+            node_note_error(context, nod, "No value and trailing +/-");
+            return 0;
+        }
         node_note_error(context, nod, "Unexpected trailing +/-");
         return 1; /* eh, keep it */
     }

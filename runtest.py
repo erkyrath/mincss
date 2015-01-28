@@ -1178,13 +1178,7 @@ Stylesheet
     ('foo {x:y(-)}',
      '''
 Stylesheet
- Rulegroup
-  Selector
-   Selectel
-    Element: foo
-  Declaration: x
-   Pvalue: Function "y"
-''', [ "Unexpected trailing +/-" ]),
+''', [ "No value and trailing +/-" ]),
     
     ('foo {x:y -/}',
      '''
@@ -1220,15 +1214,76 @@ Stylesheet
    ( ) Pvalue: Number "1"
 ''', [ ]),
     
-    ('###',
+    ('foo $ {x:1}',
      '''
 Stylesheet
-''', [ ]),
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+   ( ) Selectel
+  Declaration: x
+   Pvalue: Number "1"
+''', [ "No selector found",
+       "Unrecognized text in selector" ]),
     
-    ('###',
+    ('foo > {x:1}',
      '''
 Stylesheet
-''', [ ]),
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+''', [ "Combinator not followed by selector" ]),
+    
+    ('foo>{x:1}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Number "1"
+''', [ "Combinator not followed by selector" ]),
+    
+    ('foo {x 1}',
+     '''
+Stylesheet
+''', [ "Declaration lacks colon" ]),
+    
+    ('foo {$}',
+     '''
+Stylesheet
+''', [ "Declaration lacks colon" ]),
+    
+    ('foo { x: }',
+     '''
+Stylesheet
+''', [ "Declaration lacks value" ]),
+    
+    ('foo { 1:x }',
+     '''
+Stylesheet
+''', [ "Declaration property is not an identifier" ]),
+    
+    ('foo { ; --> ; }',
+     '''
+Stylesheet
+''', [ "HTML comment delimiters not allowed inside block" ]),
+    
+    ('foo { x: + } bar {y:- }',
+     '''
+Stylesheet
+''', [ "Unexpected +/- with no value",
+       "Unexpected +/- with no value" ]),
+    
+    ('foo {x:-}',
+     '''
+Stylesheet
+''', [ "No value and trailing +/-" ]),
     
     ]
 
