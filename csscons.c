@@ -233,10 +233,13 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
             continue;
         }
 
+        node *commanode = NULL;
         int ix;
         for (ix = pos; ix < end; ix++) {
-            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Delim && node_text_matches(nod->nodes[ix], ","))
+            if (nod->nodes[ix]->typ == nod_Token && nod->nodes[ix]->toktype == tok_Delim && node_text_matches(nod->nodes[ix], ",")) {
+                commanode = nod->nodes[ix];
                 break;
+            }
         }
 
         if (ix > pos) {
@@ -260,7 +263,13 @@ static void construct_selectors(mincss_context *context, node *nod, int start, i
         else {
             node_note_error(context, nod->nodes[start], "Block has empty selector");
         }
+
+        /* skip comma and following whitespace */
         pos = ix+1;
+        while (pos < end && node_is_space(nod->nodes[pos]))
+            pos++;
+        if (commanode && pos >= end)
+            node_note_error(context, nod, "Trailing comma after selector");
     }
 }
 

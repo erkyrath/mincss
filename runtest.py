@@ -953,7 +953,7 @@ Stylesheet
     Element: bar
   Declaration: y
    Pvalue: Number "2"
-''', [ "### trailing comma" ]),
+''', [ "Trailing comma after selector" ]),
     
     ('foo,,baz {x:1} bar {y:2}',
      '''
@@ -984,7 +984,7 @@ Stylesheet
     Element: foo
   Declaration: x
    Pvalue: Number "1"
-''', [ "### leading semicolon" ]),
+'''),
     
     ('foo {x:1;}',
      '''
@@ -1163,6 +1163,67 @@ Stylesheet
      '''
 Stylesheet
 ''', [ "Function cannot have +/-" ]),
+    
+    ('foo {x:y -}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Ident "y"
+''', [ "Unexpected trailing +/-" ]),
+    
+    ('foo {x:y(-)}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Function "y"
+''', [ "Unexpected trailing +/-" ]),
+    
+    ('foo {x:y -/}',
+     '''
+Stylesheet
+''', [ "Invalid declaration value" ]),
+    
+    ('foo {x:y -1/}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Ident "y"
+   ( ) Pvalue: (-) Number "1"
+''', [ "Unexpected trailing separator" ]),
+    
+    ('foo {x:y --1}',
+     '''
+Stylesheet
+''', [ "Invalid declaration value" ]),
+    
+    ('foo {x:y-+1}',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x
+   Pvalue: Ident "y-"
+   ( ) Pvalue: Number "1"
+''', [ ]),
+    
+    ('###',
+     '''
+Stylesheet
+''', [ ]),
     
     ('###',
      '''
