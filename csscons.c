@@ -525,7 +525,7 @@ static declaration *construct_declaration(mincss_context *context, node *nod, in
                 }
             }
             if (counter >= 2) {
-                valend = ix;
+                valend = ix-1;
                 decl->important = 1;
                 break;
             }

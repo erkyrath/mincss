@@ -1010,6 +1010,21 @@ Stylesheet
    Pvalue: Number "2"
 '''),
     
+    ('foo {x:1!IMPORTANT; y:2; z:3 ! important }',
+     '''
+Stylesheet
+ Rulegroup
+  Selector
+   Selectel
+    Element: foo
+  Declaration: x (!IMPORTANT)
+   Pvalue: Number "1"
+  Declaration: y
+   Pvalue: Number "2"
+  Declaration: z (!IMPORTANT)
+   Pvalue: Number "3"
+'''),
+    
     ('foo {x:1,2}',
      '''
 Stylesheet
